@@ -201,4 +201,42 @@ router.delete('/ports/:id', guard('ports.manage'), async (req, res) => {
   res.json({ ok: true, warning });
 });
 
+// Actividad de las últimas 24 horas de cada cliente (para la pantalla "Clientes"): eventos por hora y cuántos fueron errores o avisos.
+// Se calcula una vez cada pocos segundos y se comparte entre todos los que miran la pantalla.
+let overviewCache = { at: 0, data: null };
+
+router.get('/clients/overview', guard('ports.view'), async (req, res) => {
+  if (overviewCache.data && Date.now() - overviewCache.at < 10000) return res.json(overviewCache.data);
+
+  const { rows } = await pool.query(
+    `SELECT client_id, date_trunc('hour', ts) AS h, count(*) AS n,
+            count(*) FILTER (WHERE COALESCE(severity, 6) <= 3) AS errors,
+            count(*) FILTER (WHERE severity = 4) AS warnings
+     FROM events
+     WHERE ts >= now() - interval '24 hours' AND NOT pending AND client_id IS NOT NULL
+     GROUP BY 1, 2`
+  );
+  const start = new Date();
+  start.setUTCMinutes(0, 0, 0);
+  start.setTime(start.getTime() - 23 * 3600000);
+
+  const clients = {};
+  rows.forEach((r) => {
+    const c = clients[r.client_id] || (clients[r.client_id] = {
+      hourly: Array(24).fill(0), hourlyErrors: Array(24).fill(0), total24h: 0, errors24h: 0, warnings24h: 0,
+    });
+    const idx = Math.round((new Date(r.h).getTime() - start.getTime()) / 3600000);
+    if (idx >= 0 && idx < 24) {
+      c.hourly[idx] += Number(r.n);
+      c.hourlyErrors[idx] += Number(r.errors);
+    }
+    c.total24h += Number(r.n);
+    c.errors24h += Number(r.errors);
+    c.warnings24h += Number(r.warnings);
+  });
+
+  overviewCache = { at: Date.now(), data: { start: start.toISOString(), clients } };
+  res.json(overviewCache.data);
+});
+
 module.exports = router;

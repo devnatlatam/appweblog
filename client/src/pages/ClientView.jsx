@@ -53,7 +53,7 @@ export default function ClientView() {
   if (state === 'missing') {
     return (
       <div className="panel" style={{ maxWidth: 520, margin: '40px auto' }}>
-        <Empty icon={Cable} title="Este cliente no existe" action={<Link className="btn btn--primary" to="/puertos">Ver clientes</Link>}>
+        <Empty icon={Cable} title="Este cliente no existe" action={<Link className="btn btn--primary" to="/clientes">Ver clientes</Link>}>
           Pudo haber sido eliminado por un administrador.
         </Empty>
       </div>
@@ -64,7 +64,7 @@ export default function ClientView() {
 
   return (
     <>
-      <Link to="/puertos" className="back-link"><ArrowLeft size={16} aria-hidden="true" /> Clientes</Link>
+      <Link to="/clientes" className="back-link"><ArrowLeft size={16} aria-hidden="true" /> Clientes</Link>
 
       <header className="client-head">
         <div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCheck, Copy, Lightbulb, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { interpret, moduleLabel, FIELD_LABELS } from '../data/catalog';
+import { interpret, moduleLabel, FIELD_LABELS, cleanHost } from '../data/catalog';
 import { SeverityBadge, Dialog, dateLong } from './ui';
 
 export default function EventDetail({ event, onClose, onAck }) {
@@ -36,7 +36,7 @@ export default function EventDetail({ event, onClose, onAck }) {
 
         <div>
           <h3 className="detail-title">{event.summary}</h3>
-          <p className="cell-sub">{dateLong(event.ts)} · {event.clientName ? `${event.clientName} (puerto ${event.port})` : (event.host || event.sourceIp)}</p>
+          <p className="cell-sub">{dateLong(event.ts)} · {event.clientName ? `${event.clientName} (puerto ${event.port})` : (cleanHost(event.host) || event.sourceIp)}</p>
         </div>
 
         <div className="note">

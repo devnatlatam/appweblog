@@ -18,7 +18,7 @@ Todo esto se hace **desde la web**. Lo único que se hace en la terminal es crea
 
 ## 1. Clientes y puertos
 
-*Menú → Clientes → Gestionar clientes.*
+*Menú → Clientes → Gestionar clientes.* (También desde *Todos los clientes*, con los botones *Gestionar clientes* y *Nuevo cliente*. Esa pantalla es la vista general: una tarjeta por cliente con su estado y sus últimas 24 horas; aquí se administra.)
 
 ### Crear un cliente
 

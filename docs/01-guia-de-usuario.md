@@ -45,11 +45,11 @@ La pantalla de inicio muestra lo ocurrido en las **últimas 24 horas** de todos 
 - **Incidentes abiertos:** los problemas que siguen activos, con un enlace al cliente afectado.
 - **Necesita tu atención:** errores y avisos sin revisar, **agrupados por problema** ("se repitió 388 veces, la última hace 1 min"). Con el botón *Revisado* marcas todo el grupo.
 
-Para ver los logs de un cliente en particular, entra a su espacio desde el menú.
+Para ver los logs de un cliente en particular, entra a su espacio desde el menú o desde [Clientes](#clientes).
 
 ## El espacio de un cliente
 
-Arriba ves su nombre, puerto, estado, el último log recibido y **desde qué IP envía** (con las IP anteriores, útil para notar que el router cambió de enlace). Quien tenga permiso ve un interruptor para encender o apagar su puerto.
+Se entra desde la pantalla [Clientes](#clientes) o desde el menú. Arriba ves su nombre, puerto, estado, el último log recibido y **desde qué IP envía** (con las IP anteriores, útil para notar que el router cambió de enlace). Quien tenga permiso ve un interruptor para encender o apagar su puerto.
 
 Cuatro pestañas:
 
@@ -75,10 +75,22 @@ El historial completo, guardado en la base de datos.
 - **Tipo de log, severidad y "Sin revisar"** como filtros.
 - **Mostrar más** carga los siguientes. El total se muestra hasta "más de 10.000".
 - **Agrupar repetidos:** el firewall genera miles de líneas iguales (por ejemplo, el mismo equipo consultando el DNS cada 2 segundos). Con esta opción, los eventos iguales de un mismo tramo (1 min, 5 min, 15 min o 1 hora) se muestran en **una fila con su cantidad** (`×25`). Al tocar la fila ves los eventos reales de ese tramo. **No se pierde nada:** se guardan todos, solo cambia cómo se muestran.
-- **Exportar CSV** (si tu rol lo permite): descarga lo que coincide con los filtros actuales, hasta 50.000 filas.
+- **Vista del firewall:** si eliges el tipo **Firewall**, la tabla muestra lo que importa de cada paquete: **Acción** (Permitido o Bloqueado), **Origen** (IP y puerto de origen), **Destino** y **Puerto destino** (con el protocolo y el servicio, por ejemplo `53 · UDP · DNS`). Si la regla tiene nombre, aparece bajo el resumen. En los demás tipos se muestra el equipo que envió el log.
+- **Exportar CSV** (si tu rol lo permite): descarga lo que coincide con los filtros actuales, hasta 50.000 filas. Con el tipo Firewall elegido, el archivo incluye también las columnas de acción, origen, destino, puerto, protocolo y regla.
 
 ### Incidentes
 Los problemas del cliente, **abiertos** y **resueltos**, con su duración. Un problema que se repite (como un conflicto de IP que avisa cada minuto) cuenta como **un solo incidente**, no cientos.
+
+**Toca un incidente para ver qué pasa.** Se abre su detalle con:
+
+- Si sigue abierto o ya terminó, **desde cuándo** y **cuánto lleva o cuánto duró**.
+- **A quién afecta** (la salida WAN, la IP, el equipo).
+- **Qué significa** y **qué hacer**.
+- Los **datos del primer aviso** (por ejemplo, las dos MAC de un conflicto de IP).
+- **Qué pasó**: la lista de avisos que lo componen, del más reciente al más antiguo. Toca uno para ver su detalle completo.
+- **Ver en Registros**: te lleva a los registros de ese cliente, ya filtrados al tramo de tiempo del incidente.
+
+También puedes abrirlos desde el **Resumen general**, en "Incidentes abiertos".
 
 ## El detalle de un evento
 
@@ -92,9 +104,22 @@ Al tocar un evento se abre un panel con:
 
 En los cambios de configuración del controlador, los datos incluyen **qué campo cambió y de qué valor a cuál** (por ejemplo `syslog: false → true`).
 
-## Clientes y puertos (solo lectura para ti)
+## Clientes
 
-*Menú → Clientes y puertos.* Lista todos los clientes con su puerto, protocolo, eventos de las últimas 24 horas y último log. Si tu rol lo permite, puedes encender o apagar un puerto con el interruptor. Crear o eliminar clientes es de los administradores.
+*Menú → Clientes → Todos los clientes.* Es la lista de todos los clientes creados, una tarjeta por cliente. **Toca una tarjeta para entrar a su espacio** y ver sus logs.
+
+Cada tarjeta muestra:
+
+- el **nombre**, el **puerto** y el **estado**: *Recibiendo*, *Esperando logs* (aún no llegó nada), *Sin señal* (más de 15 minutos sin recibir), *Apagado* o *Error de puerto* (encendido pero sin poder abrir el puerto);
+- un gráfico con los **eventos por hora de las últimas 24 horas** (en rojo las horas con errores);
+- los totales de **eventos, errores y avisos** de esas 24 horas;
+- cuándo llegó el **último log** y **desde qué IP** envía;
+- cuántos **incidentes abiertos** tiene;
+- accesos directos a **Registros**, **En vivo** e **Incidentes**.
+
+Arriba hay un resumen (clientes, recibiendo, con problemas, incidentes abiertos), un buscador por nombre o puerto y filtros *Todos / Con problemas / Recibiendo / Apagados*. Los que necesitan atención salen primero. La pantalla se actualiza sola cada 15 segundos.
+
+Los administradores ven además *Nuevo cliente* y *Gestionar clientes*, donde se crean, editan, eliminan y se encienden o apagan los puertos (los operadores también pueden encender y apagar).
 
 ## Alertas
 

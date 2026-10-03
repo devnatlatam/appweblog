@@ -3,7 +3,7 @@ import { Pause, Play, Eraser, Search, Wifi, WifiOff } from 'lucide-react';
 import { api, qs, tokenStore } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { moduleLabel } from '../data/catalog';
+import { moduleLabel, cleanHost } from '../data/catalog';
 import { SEVERITIES } from '../data/severity';
 import EventDetail from '../components/EventDetail';
 import { PageHead, timeShort } from '../components/ui';
@@ -207,7 +207,7 @@ export default function Live({ clientId, embedded = false }) {
                   style={{ top: (start + i) * ROW_H, height: ROW_H }} onClick={() => setOpenId(e.id)}>
                   <span className="mono">{timeShort(e.ts)}</span>
                   <span className={`lvl lvl--${e.severity}`} title={SEVERITIES[e.severity].label}>{SEVERITIES[e.severity].label}</span>
-                  <span className="console__client">{e.host || '—'}</span>
+                  <span className="console__client">{cleanHost(e.host) || '—'}</span>
                   <span className="mono console__ip">{e.sourceIp}</span>
                   <span className="console__msg">{e.summary} <small>{moduleLabel(e.module)}{e.aclName ? ` · regla ${e.aclName}` : ''}</small></span>
                 </button>

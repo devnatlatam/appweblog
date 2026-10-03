@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Cable, TriangleAlert } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { PageHead, Switch, Dialog, Empty, timeAgo } from '../components/ui';
 
 const changed = () => window.dispatchEvent(new Event('clients-changed'));
@@ -99,6 +99,11 @@ export default function Ports() {
   const [form, setForm] = useState(null); // null | 'new' | port
   const [confirmDel, setConfirmDel] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state && location.state.create && canManage) setForm('new');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(() => {
     api('/ports').then((d) => { setPorts(d.ports); setFirewallManaged(Boolean(d.firewallManaged)); setError(''); }).catch((e) => setError(e.message));

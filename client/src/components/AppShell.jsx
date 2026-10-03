@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive, Mail, ChevronsUpDown,
+  LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive, Mail, ChevronsUpDown, LayoutGrid,
   Menu, Sun, Moon, LogOut, Activity, Pause, Play, Radio, ListChecks,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +18,9 @@ function buildNav(clients, can) {
   const nav = [{ to: '/', label: 'Resumen general', icon: LayoutDashboard, perm: 'dashboard.view', end: true, badge: true, tab: true }];
   if (can('ports.view')) {
     nav.push({ group: 'Clientes' });
+    nav.push({ to: '/clientes', label: 'Todos los clientes', icon: LayoutGrid, perm: 'ports.view', end: true, tab: true });
     clients.forEach((c) => nav.push({ to: `/clientes/${c.id}`, label: c.clientName, sub: `:${c.port}`, dot: clientState(c), perm: 'ports.view' }));
-    nav.push({ to: '/puertos', label: can('ports.manage') ? 'Gestionar clientes' : 'Clientes y puertos', icon: Cable, perm: 'ports.view', tab: true });
+    nav.push({ to: '/puertos', label: can('ports.manage') ? 'Gestionar clientes' : 'Clientes y puertos', icon: Cable, perm: 'ports.view' });
   }
   nav.push({ to: '/alertas', label: 'Alertas', icon: BellRing, perm: 'alerts.view', tab: true });
   nav.push({ to: '/admin/por-aprobar', label: 'Por aprobar', icon: ListChecks, perm: 'types.review', typesBadge: true });
@@ -32,7 +33,7 @@ function buildNav(clients, can) {
 }
 
 const TITLES = {
-  '/': 'Resumen general', '/puertos': 'Clientes y puertos', '/alertas': 'Alertas', '/admin/por-aprobar': 'Por aprobar',
+  '/': 'Resumen general', '/clientes': 'Clientes', '/puertos': 'Clientes y puertos', '/alertas': 'Alertas', '/admin/por-aprobar': 'Por aprobar',
   '/admin/usuarios': 'Usuarios', '/admin/roles': 'Roles y permisos', '/admin/almacenamiento': 'Almacenamiento', '/admin/correo': 'Correo',
 };
 

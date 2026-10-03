@@ -5,6 +5,7 @@ import AppShell from './components/AppShell';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ClientView from './pages/ClientView';
+import Clients from './pages/Clients';
 import Alerts from './pages/Alerts';
 import Ports from './pages/Ports';
 import Users from './pages/admin/Users';
@@ -44,9 +45,10 @@ export default function App() {
         }
       >
         <Route index element={<Guard perm="dashboard.view"><Dashboard /></Guard>} />
+        <Route path="clientes" element={<Guard perm="ports.view"><Clients /></Guard>} />
         <Route path="clientes/:id/*" element={<Guard perm="ports.view"><ClientView /></Guard>} />
-        <Route path="registros" element={<Navigate to="/puertos" replace />} />
-        <Route path="en-vivo" element={<Navigate to="/puertos" replace />} />
+        <Route path="registros" element={<Navigate to="/clientes" replace />} />
+        <Route path="en-vivo" element={<Navigate to="/clientes" replace />} />
         <Route path="puertos" element={<Guard perm="ports.view"><Ports /></Guard>} />
         <Route path="alertas" element={<Guard perm="alerts.view"><Alerts /></Guard>} />
         <Route path="admin/usuarios" element={<Guard perm="users.manage"><Users /></Guard>} />

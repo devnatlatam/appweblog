@@ -11,7 +11,7 @@ Los ejemplos son reales (de un router ER7206 y un controlador Omada) con las dir
 1. **Cabecera:** quita `<PRI>` y, si la hay, la cabecera RFC 3164 (`Oct  2 14:51:44 host`) o RFC 5424 (`1 2026-10-02T14:51:44Z host app - - -`). Si no hay cabecera, sigue igual.
 2. **Controlador con JSON** (`fecha hora SITIO - - - {json}`): auditoría de cambios.
 3. **Controlador con texto** (`fecha hora SITIO - - - [gateway:NOMBRE:MAC]: texto`, el prefijo es opcional): alertas reenviadas.
-4. **Router** (`modulo<n>: mensaje`): el módulo y la severidad vienen **dentro** del mensaje. Se busca por el patrón, sin importar qué cabecera tenga delante.
+4. **Router** (`modulo<n>: mensaje`): el módulo y la severidad vienen **dentro** del mensaje. Se busca por el patrón, sin importar qué cabecera tenga delante. El router envía una cabecera sin nombre de equipo (`Oct  3 11:59:20 ER7206: 2026-…`): la etiqueta `ER7206:` se usa como nombre del equipo, **sin** los dos puntos.
 5. **Nada de lo anterior:** tipo desconocido → [cuarentena](#tipos-desconocidos-y-aprobación).
 
 **Severidad:** la del `<n>` del módulo (router); si no la hay, la de la cabecera `PRI & 7`; si tampoco, ninguna (se muestra como *Info*). Los incidentes de internet o VPN caída suben a *Error* (3) y el DHCP intruso a *Aviso* (4).

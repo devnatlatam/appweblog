@@ -165,10 +165,21 @@ router.get('/events/export', guard('logs.export'), async (req, res) => {
     `SELECT ${COLS} FROM ${FROM} WHERE ${where.join(' AND ')} ORDER BY e.ts DESC, e.id DESC LIMIT 50000`,
     params
   );
-  const head = ['Fecha (UTC)', 'Severidad', 'Tipo', 'Cliente', 'Puerto', 'IP origen', 'Resumen', ...(canRaw ? ['Mensaje original'] : [])];
-  const lines = rows.map((r) => [
-    new Date(r.ts).toISOString(), sevKey(r.severity), r.module, r.client_name, r.port, r.source_ip, r.summary, ...(canRaw ? [r.message] : []),
-  ].map(csvCell).join(','));
+  // En el firewall, las columnas que importan son otras: acción, origen, destino y puerto
+  const fw = req.query.module === 'firewall';
+  const head = [
+    'Fecha (UTC)', 'Severidad', 'Tipo', 'Cliente', 'Puerto', 'IP origen',
+    ...(fw ? ['Acción', 'Origen', 'Puerto origen', 'Destino', 'Puerto destino', 'Protocolo', 'Regla (ACL)'] : []),
+    'Resumen', ...(canRaw ? ['Mensaje original'] : []),
+  ];
+  const lines = rows.map((r) => {
+    const f = r.fields || {};
+    return [
+      new Date(r.ts).toISOString(), sevKey(r.severity), r.module, r.client_name, r.port, r.source_ip,
+      ...(fw ? [f.action, f.src, f.sport, f.dst, f.dport, f.proto, r.acl_name || f.rule] : []),
+      r.summary, ...(canRaw ? [r.message] : []),
+    ].map(csvCell).join(',');
+  });
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="registros.csv"');
   res.send(`﻿${[head.map(csvCell).join(','), ...lines].join('\r\n')}`);

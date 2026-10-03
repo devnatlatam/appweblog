@@ -2,7 +2,8 @@
 const express = require('express');
 const pool = require('./db');
 const { auth, need } = require('./middleware');
-const { sevKey } = require('./shape');
+const { sevKey, shape } = require('./shape');
+const { PERMS } = require('./permissions');
 
 const router = express.Router();
 
@@ -51,6 +52,51 @@ router.get('/incidents', auth, need('dashboard.view'), async (req, res) => {
   const c = { open: 0, resolved: 0 };
   counts.rows.forEach((r) => { c[r.status] = Number(r.n); });
   res.json({ incidents: rows.map(incidentShape), counts: c });
+});
+
+// Qué eventos cuentan como parte de cada tipo de incidente (para mostrar "qué pasó" al abrirlo)
+const STORY = {
+  wan_offline: { modules: ['online_dection', 'alerta_controlador'], field: 'wan', like: ['%conexión a internet%'] },
+  ipsec_down: { modules: ['ipsec', 'alerta_controlador'], field: 'wan', like: ['%caído%', '%establecido%'] },
+  ip_conflict: { modules: ['ip_conflict'], field: 'ip', like: ['%'] },
+  rogue_dhcp: { modules: ['dhcp_server', 'alerta_controlador'], field: 'ip', like: ['Servidor DHCP intruso%'] },
+};
+
+// Detalle de un incidente: lo que lo abrió y los eventos que lo componen
+router.get('/incidents/:id', auth, need('dashboard.view'), async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT i.*, c.client_name FROM incidents i JOIN clients_ports c ON c.id = i.client_id WHERE i.id = $1',
+    [Number(req.params.id) || 0]
+  );
+  const i = rows[0];
+  if (!i) return res.status(404).json({ error: 'Incidente no encontrado.' });
+
+  const canRaw = PERMS[req.user.role].includes('logs.raw');
+  const story = STORY[i.kind];
+  let opening = null;
+  let events = [];
+  let total = 0;
+  if (story) {
+    // Una ventana con un minuto de margen alrededor del incidente
+    const from = new Date(new Date(i.opened_at).getTime() - 60000);
+    const end = i.status === 'resolved' ? i.resolved_at : new Date();
+    const to = new Date(new Date(end).getTime() + 60000);
+    const where = `e.client_id = $1 AND e.ts BETWEEN $2 AND $3 AND NOT e.pending AND e.module = ANY($4::text[])
+                   AND e.fields->>'${story.field}' = $5 AND e.summary ILIKE ANY($6::text[])`;
+    const params = [i.client_id, from, to, story.modules, i.key, story.like];
+    const cols = `e.id, e.ts, e.source_ip, e.host, e.client_id, c.client_name, e.port, e.module, e.severity, e.category,
+                  e.summary, e.fields, e.message, e.raw, e.acknowledged`;
+    const from_ = 'events e LEFT JOIN clients_ports c ON c.id = e.client_id';
+    const [first, latest, count] = await Promise.all([
+      pool.query(`SELECT ${cols} FROM ${from_} WHERE ${where} ORDER BY e.ts ASC, e.id ASC LIMIT 1`, params),
+      pool.query(`SELECT ${cols} FROM ${from_} WHERE ${where} ORDER BY e.ts DESC, e.id DESC LIMIT 40`, params),
+      pool.query(`SELECT count(*) AS n FROM events e WHERE ${where}`, params),
+    ]);
+    opening = first.rows[0] ? shape(first.rows[0], canRaw) : null;
+    events = latest.rows.map((r) => shape(r, canRaw));
+    total = Number(count.rows[0].n);
+  }
+  res.json({ incident: incidentShape(i), opening, events, total });
 });
 
 module.exports = router;

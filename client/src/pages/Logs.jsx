@@ -6,7 +6,7 @@ import { useEvents } from '../context/EventsContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { SEVERITIES, SEVERITY_ORDER } from '../data/severity';
-import { moduleLabel, FILTER_MODULES } from '../data/catalog';
+import { moduleLabel, FILTER_MODULES, PORT_NAMES, cleanHost } from '../data/catalog';
 import EventDetail from '../components/EventDetail';
 import { PageHead, SeverityBadge, Empty, timeShort } from '../components/ui';
 
@@ -28,6 +28,14 @@ const POLL_MS = 5000;
 const byNewest = (a, b) => (a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : b.id - a.id);
 const hhmm = (iso) => new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+// Acción del firewall: permitido o bloqueado
+function ActionBadge({ action }) {
+  const a = String(action || '');
+  if (/^allow/i.test(a)) return <span className="badge badge--ok">Permitido</span>;
+  if (/^(deny|drop|block|reject)/i.test(a)) return <span className="badge badge--critical">Bloqueado</span>;
+  return <span className="badge badge--plain">{a || '—'}</span>;
+}
+
 export default function Logs({ clientId = null, embedded = false }) {
   const { live, refresh } = useEvents();
   const { can } = useAuth();
@@ -35,15 +43,16 @@ export default function Logs({ clientId = null, embedded = false }) {
   const location = useLocation();
   const from = location.state || {};
 
-  const [q, setQ] = useState('');
-  const [qLive, setQLive] = useState('');
+  const [q, setQ] = useState(from.q || '');
+  const [qLive, setQLive] = useState(from.q || '');
   const [sev, setSev] = useState([]);
   const [module, setModule] = useState(from.module || '');
   const client = clientId ? String(clientId) : '';
   const [hours, setHours] = useState(24);
   const [pending, setPending] = useState(Boolean(from.pending));
   const [groupSecs, setGroupSecs] = useState(0);
-  const [win, setWin] = useState(null); // { since, until } al abrir un grupo
+  // Una ventana exacta de tiempo: al venir desde un incidente o al abrir un grupo
+  const [win, setWin] = useState(from.since && from.until ? { since: from.since, until: from.until, label: `${hhmm(from.since)}–${hhmm(from.until)}` } : null);
 
   const [items, setItems] = useState([]);   // eventos (modo normal)
   const [groups, setGroups] = useState([]); // filas agrupadas (modo agrupado)
@@ -54,6 +63,7 @@ export default function Logs({ clientId = null, embedded = false }) {
   const [openId, setOpenId] = useState(null);
   const req = useRef(0);
   const grouped = groupSecs > 0;
+  const fwView = module === 'firewall' && !grouped;
 
   // Pequeña espera al escribir para no consultar en cada tecla
   useEffect(() => {
@@ -155,6 +165,8 @@ export default function Logs({ clientId = null, embedded = false }) {
   const exportBtn = can('logs.export') && (
     <button type="button" className="btn" onClick={exportCsv} disabled={!items.length && !groups.length}><Download size={18} /> Exportar CSV</button>
   );
+  const rowKey = (e) => (e.id);
+  const onRowKey = (id) => (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOpenId(id); } };
 
   return (
     <>
@@ -198,7 +210,7 @@ export default function Logs({ clientId = null, embedded = false }) {
         {win && (
           <div className="win-chip">
             <Layers size={16} aria-hidden="true" />
-            <span>Eventos de un grupo, entre las {win.label}</span>
+            <span>Mostrando solo lo de las {win.label}{from.q && !grouped ? ` sobre «${from.q}»` : ''}</span>
             <button type="button" className="icon-btn" onClick={clear} aria-label="Volver a ver todo"><X size={16} /></button>
           </div>
         )}
@@ -256,27 +268,56 @@ export default function Logs({ clientId = null, embedded = false }) {
         ) : (
           <>
             <div className="table-wrap logs-table">
-              <table className="table">
-                <thead>
-                  <tr><th>Hora</th><th>Severidad</th><th>Qué pasó</th><th>Origen</th><th>Tipo</th></tr>
-                </thead>
-                <tbody>
-                  {items.map((e) => (
-                    <tr key={e.id} className={`row-click${e.acknowledged ? ' is-done' : ''}`} tabIndex={0}
-                      onClick={() => setOpenId(e.id)}
-                      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOpenId(e.id); } }}>
-                      <td className="mono nowrap">{timeShort(e.ts)}</td>
-                      <td><SeverityBadge severity={e.severity} /></td>
-                      <td>
-                        <div className="cell-main">{e.summary}</div>
-                        {e.aclName && <div className="cell-sub">Regla {e.aclName}</div>}
-                      </td>
-                      <td className="nowrap">{e.host || e.sourceIp}</td>
-                      <td className="nowrap">{moduleLabel(e.module)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {fwView ? (
+                <table className="table">
+                  <thead>
+                    <tr><th>Hora</th><th>Severidad</th><th>Acción</th><th>Origen</th><th>Destino</th><th>Puerto destino</th><th>Qué pasó</th></tr>
+                  </thead>
+                  <tbody>
+                    {items.map((e) => {
+                      const f = e.fields || {};
+                      const svc = PORT_NAMES[f.dport];
+                      return (
+                        <tr key={rowKey(e)} className={`row-click${e.acknowledged ? ' is-done' : ''}`} tabIndex={0} onClick={() => setOpenId(e.id)} onKeyDown={onRowKey(e.id)}>
+                          <td className="mono nowrap">{timeShort(e.ts)}</td>
+                          <td><SeverityBadge severity={e.severity} /></td>
+                          <td><ActionBadge action={f.action} /></td>
+                          <td className="nowrap"><span className="mono">{f.src || '—'}</span>{f.sport ? <div className="cell-sub mono">puerto {f.sport}</div> : null}</td>
+                          <td className="nowrap"><span className="mono">{f.dst || '—'}</span></td>
+                          <td className="nowrap">
+                            <span className="mono cell-main">{f.dport ?? '—'}</span>
+                            <div className="cell-sub">{[f.proto, svc].filter(Boolean).join(' · ')}</div>
+                          </td>
+                          <td>
+                            <div className="cell-main">{e.summary}</div>
+                            {e.aclName && <div className="cell-sub">Regla {e.aclName}</div>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr><th>Hora</th><th>Severidad</th><th>Qué pasó</th><th>Equipo</th><th>Tipo</th></tr>
+                  </thead>
+                  <tbody>
+                    {items.map((e) => (
+                      <tr key={rowKey(e)} className={`row-click${e.acknowledged ? ' is-done' : ''}`} tabIndex={0} onClick={() => setOpenId(e.id)} onKeyDown={onRowKey(e.id)}>
+                        <td className="mono nowrap">{timeShort(e.ts)}</td>
+                        <td><SeverityBadge severity={e.severity} /></td>
+                        <td>
+                          <div className="cell-main">{e.summary}</div>
+                          {e.aclName && <div className="cell-sub">Regla {e.aclName}</div>}
+                        </td>
+                        <td className="nowrap">{cleanHost(e.host) || e.sourceIp}</td>
+                        <td className="nowrap">{moduleLabel(e.module)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
 
             <ul className="log-cards">
@@ -288,7 +329,7 @@ export default function Logs({ clientId = null, embedded = false }) {
                       <span className="mono">{timeShort(e.ts)}</span>
                     </span>
                     <strong>{e.summary}</strong>
-                    <span className="cell-sub">{e.host || e.sourceIp} · {moduleLabel(e.module)}{e.aclName ? ` · regla ${e.aclName}` : ''}</span>
+                    <span className="cell-sub">{cleanHost(e.host) || e.sourceIp} · {moduleLabel(e.module)}{e.aclName ? ` · regla ${e.aclName}` : ''}</span>
                   </button>
                 </li>
               ))}

@@ -118,7 +118,7 @@ function parseWire(text, { sourceIp, receivedAt = new Date() }) {
     host = h5[1] !== '-' ? h5[1] : null;
     body = h5[3];
   } else if (h3) {
-    host = h3[1];
+    host = h3[1].replace(/:$/, ''); // "ER7206:" es la etiqueta del equipo; los dos puntos no son parte del nombre
     body = h3[2];
   }
 

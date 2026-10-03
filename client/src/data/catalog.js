@@ -111,3 +111,33 @@ export const INCIDENT_KINDS = {
   ip_conflict: 'Conflicto de IP',
   rogue_dhcp: 'Servidor DHCP intruso',
 };
+
+// "ER7206:" llega con los dos puntos de la etiqueta pegados; el nombre del equipo es solo "ER7206"
+export const cleanHost = (h) => (h ? String(h).replace(/:$/, '') : h);
+
+// Nombres de los puertos más comunes, para leer el firewall de un vistazo
+export const PORT_NAMES = {
+  21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS', 67: 'DHCP', 80: 'HTTP', 88: 'Kerberos', 110: 'POP3', 123: 'NTP',
+  135: 'RPC', 143: 'IMAP', 161: 'SNMP', 389: 'LDAP', 443: 'HTTPS', 445: 'SMB', 514: 'Syslog', 993: 'IMAPS', 1433: 'SQL Server',
+  3268: 'Catálogo global AD', 3306: 'MySQL', 3389: 'Escritorio remoto', 5060: 'SIP', 5432: 'PostgreSQL', 8080: 'HTTP alterno',
+};
+
+// Qué significa cada tipo de incidente y qué hacer. Reciben el incidente y un aviso de ejemplo (el primero).
+export const INCIDENT_INFO = {
+  wan_offline: {
+    meaning: (i) => `El router dejó de tener internet por la salida ${i.key} (WAN). Si hay otra salida configurada, el tráfico puede estar pasando por ella.`,
+    action: () => 'Revisa el módem o el enlace de ese proveedor. Si se repite, pide al proveedor que revise la línea. Mientras dure, confirma que la salida de respaldo esté funcionando.',
+  },
+  ipsec_down: {
+    meaning: (i) => `El túnel VPN que sale por ${i.key} dejó de responder: la comunicación con la otra sede se corta hasta que se restablezca.`,
+    action: () => 'Revisa que la otra sede tenga internet y que su equipo VPN esté encendido. Si hay un túnel de respaldo, el router puede haber pasado a él: confirma que la comunicación funcione.',
+  },
+  ip_conflict: {
+    meaning: (i) => `Dos equipos están usando la misma dirección IP (${i.key}). Ambos pueden perder la conexión de forma intermitente. El aviso se repite mientras el conflicto sigue.`,
+    action: (i, sample) => MODULE_INFO.ip_conflict.action({ summary: '', fields: (sample && sample.fields) || {} }),
+  },
+  rogue_dhcp: {
+    meaning: (i) => `Un equipo (${i.key}) está respondiendo como servidor DHCP sin que debiera. Los equipos pueden recibir de él una IP o una puerta de enlace equivocadas y quedar sin conexión.`,
+    action: () => 'Ubica el equipo por su IP o MAC (ver "Datos del primer aviso") y apaga su servidor DHCP. Suele ser un router, repetidor o punto de acceso conectado por error.',
+  },
+};

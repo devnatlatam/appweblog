@@ -50,7 +50,9 @@ Objeto `port`: `{ id, clientName, port, protocol, isActive, allowedIps[], lastSe
 | `PATCH /ports/:id` | `ports.manage` | `{ clientName?, port?, protocol?, allowedIps? }` | `{ port }` |
 | `POST /ports/:id/toggle` | `ports.toggle` | `{ active: true \| false }` | `{ port, warning }` |
 | `DELETE /ports/:id` | `ports.manage` | — | `{ ok, warning }` |
+| `GET /clients/overview` | `ports.view` | — | `{ start, clients }` |
 
+- `GET /clients/overview` alimenta la pantalla Clientes: por id de cliente, `{ hourly[24], hourlyErrors[24], total24h, errors24h, warnings24h }` de las últimas 24 horas. `start` es el inicio (UTC) de la primera hora de las series. Errores = severidad ≤ 3, avisos = severidad 4; no cuenta eventos pendientes de aprobar. Se guarda en caché 10 s.
 - `activate: true` enciende al crear. Si no se puede, el cliente se crea **apagado** y `warning` explica el motivo.
 - `port` y `protocol` solo se cambian con el puerto apagado (`409` si no).
 - `allowedIps`: lista o texto separado por comas/espacios; vacío = cualquiera.
@@ -88,7 +90,7 @@ Respuesta agrupada: `{ grouped: true, seconds, hasMore, total?, groups[{ bucket,
 Cuerpo: `{ "ids": [..] }` (hasta 5.000) **o** `{ "clientId", "module", "summary" }` (marca el grupo de las últimas 24 h). → `{ updated }`.
 
 ### `GET /events/export` · `logs.export`
-Mismos filtros que `/events`. Devuelve un **CSV** (UTF-8 con BOM, hasta 50.000 filas). Las celdas que empiezan con `= + - @` se prefijan con `'` para que no se ejecuten como fórmulas.
+Mismos filtros que `/events`. Devuelve un **CSV** (UTF-8 con BOM, hasta 50.000 filas). Con `module=firewall` agrega las columnas `Acción`, `Origen`, `Puerto origen`, `Destino`, `Puerto destino`, `Protocolo` y `Regla (ACL)`. Las celdas que empiezan con `= + - @` se prefijan con `'` para que no se ejecuten como fórmulas.
 
 ## Resumen e incidentes · `dashboard.view`
 
@@ -110,6 +112,14 @@ Cubre las últimas 24 horas. `attention` agrupa errores y avisos sin revisar (m�
 ### `GET /incidents`
 Parámetros: `client`, `status` (`open`/`resolved`), `limit` (1–200). → `{ incidents[], counts: { open, resolved } }`.
 Incidente: `{ id, clientId, clientName, kind, key, title, level, severity, status, openedAt, lastSeen, resolvedAt, durationSecs, eventCount, autoClosed }`.
+
+### `GET /incidents/:id`
+El detalle de un incidente: `{ incident, opening, events[], total }`.
+
+- `opening`: el primer aviso (el que lo abrió), o `null`.
+- `events`: los **últimos 40** avisos que lo componen, del más reciente al más antiguo. `total` dice cuántos hay en total.
+- Los avisos se buscan en la ventana del incidente (con un minuto de margen) y solo cuentan los que corresponden a su tipo y a lo que afecta: `wan_offline` → mensajes de conexión a internet de esa WAN; `ipsec_down` → túnel caído o restablecido de esa WAN (sin los de renovación de clave); `ip_conflict` → avisos de esa IP; `rogue_dhcp` → avisos del servidor intruso con esa IP.
+- `message` y `raw` solo para quien tenga `logs.raw`. `404` si no existe.
 
 ## Tipos por aprobar · `types.review`
 
