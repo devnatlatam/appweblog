@@ -1,0 +1,15 @@
+# /etc/systemd/system/syslogweb-fw.service
+# Corre como root, solo para aplicar en ufw la lista de puertos de la web. La web en sí NO tiene estos permisos.
+[Unit]
+Description=Aplica en ufw los puertos que pide Syslog Web
+After=ufw.service network.target
+# Varios cambios seguidos (encender y apagar puertos) no deben bloquear el servicio por exceso de arranques
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/syslogweb-fw-sync
+
+[Install]
+# También se ejecuta al arrancar el servidor, para dejar el firewall como lo pide la web
+WantedBy=multi-user.target

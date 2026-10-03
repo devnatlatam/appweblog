@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# /usr/local/sbin/syslogweb-fw-sync   (propietario root, permisos 0750)
+#
+# Lee la lista de puertos que pide la web (/var/lib/syslogweb/firewall.desired) y deja el firewall (ufw) igual a esa lista:
+# abre los puertos nuevos, cierra los que ya no se piden y actualiza las IP permitidas. El resultado queda en
+# /var/lib/syslogweb/firewall.status para que la web sepa si funcionó.
+#
+# Este programa corre como root, así que no confía en el archivo: valida cada línea y se niega a tocar puertos delicados.
+set -u
+
+DIR="${SYSLOGWEB_DIR:-/var/lib/syslogweb}"
+STATE_DIR="${SYSLOGWEB_STATE:-/var/lib/syslogweb-fw}"
+UFW="${UFW_BIN:-ufw}"
+DESIRED="$DIR/firewall.desired"
+STATUS="$DIR/firewall.status"
+APPLIED="$STATE_DIR/applied"
+MAX_ENTRIES=300
+# Puertos que la web NUNCA puede abrir: SSH, correo, web, bases de datos y la propia API
+DENY=" 22 25 53 80 110 143 443 465 587 993 995 3306 4000 5173 5432 6379 8080 "
+
+mkdir -p "$STATE_DIR" && chmod 700 "$STATE_DIR"
+# Una sola ejecución a la vez
+exec 9>"$STATE_DIR/lock"
+command -v flock >/dev/null 2>&1 && flock 9
+
+declare -A want   # "proto|puerto" -> "any" o "ip1,ip2"  (lo que pide la web)
+declare -A have   # lo que este programa dejó abierto la última vez
+errors=()
+token=""
+
+valid_ip() {
+  local ip=$1 o
+  [[ $ip =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || return 1
+  local IFS=.
+  for o in $ip; do (( 10#$o <= 255 )) || return 1; done
+  return 0
+}
+
+json_escape() {
+  local s=${1:0:200}
+  s=${s//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\n'/ }; s=${s//$'\r'/ }; s=${s//$'\t'/ }
+  printf '%s' "$s"
+}
+
+write_status() {
+  local ok=true list="" e
+  (( ${#errors[@]} )) && ok=false
+  for e in "${errors[@]+"${errors[@]}"}"; do list+="${list:+,}\"$(json_escape "$e")\""; done
+  local tmp
+  tmp=$(mktemp "$DIR/.status.XXXXXX") || return 1
+  printf '{"token":"%s","ok":%s,"errors":[%s],"time":"%s"}\n' "$token" "$ok" "$list" "$(date -u +%FT%TZ)" > "$tmp"
+  chmod 644 "$tmp"
+  mv -T "$tmp" "$STATUS"
+}
+
+# ───────── 1. Leer y validar lo que pide la web ─────────
+if [[ -L $DESIRED || ! -f $DESIRED ]]; then
+  echo "syslogweb-fw-sync: no hay lista de puertos válida en $DESIRED" >&2
+  exit 0
+fi
+
+complete=0; n=0; lineno=0
+while IFS= read -r line || [[ -n $line ]]; do
+  lineno=$((lineno + 1))
+  case $line in
+    "# token="*) t=${line#"# token="}; [[ $t =~ ^[0-9a-f]{1,32}$ ]] && token=$t ;;
+    "# end") complete=1 ;;
+    "#"*|"") ;;
+    *)
+      n=$((n + 1))
+      if (( n > MAX_ENTRIES )); then errors+=("La lista tiene demasiados puertos."); break; fi
+      read -r proto port ips extra <<<"$line"
+      # Por seguridad, los mensajes de error indican el número de línea pero nunca repiten su contenido
+      if [[ -n ${extra:-} || ! $proto =~ ^(udp|tcp)$ || ! ${port:-} =~ ^[0-9]{1,5}$ || -z ${ips:-} ]]; then
+        errors+=("Línea $lineno: formato no válido."); continue
+      fi
+      port=$((10#$port))
+      if (( port < 1 || port > 65535 )); then errors+=("Línea $lineno: puerto fuera de rango."); continue; fi
+      if [[ $DENY == *" $port "* ]]; then errors+=("El puerto $port está protegido y no se puede abrir desde la web."); continue; fi
+      if [[ $ips != any ]]; then
+        bad=0; IFS=, read -ra arr <<<"$ips"
+        for ip in "${arr[@]}"; do valid_ip "$ip" || bad=1; done
+        if (( bad )); then errors+=("Línea $lineno: dirección IP no válida."); continue; fi
+      fi
+      want["$proto|$port"]=$ips
+      ;;
+  esac
+done < "$DESIRED"
+
+# Un archivo a medio escribir no se aplica: así no se cierran puertos por error. La siguiente escritura lo vuelve a lanzar.
+if (( ! complete )); then
+  echo "syslogweb-fw-sync: la lista está incompleta, se espera la siguiente" >&2
+  exit 0
+fi
+[[ -z $token ]] && errors+=("La lista no trae identificador.")
+
+# ───────── 2. Lo que este programa dejó abierto antes ─────────
+if [[ -f $APPLIED && ! -L $APPLIED ]]; then
+  while read -r proto port ips; do
+    [[ $proto =~ ^(udp|tcp)$ && $port =~ ^[0-9]+$ && -n $ips ]] && have["$proto|$port"]=$ips
+  done < "$APPLIED"
+fi
+
+# ───────── 3. Cambios en ufw ─────────
+# ufw_change add|del proto puerto ips   (devuelve 0 si todo salió bien)
+ufw_change() {
+  local action=$1 proto=$2 port=$3 ips=$4 ip out rc=0
+  local list=()
+  if [[ $ips == any ]]; then list=(any); else IFS=, read -ra list <<<"$ips"; fi
+  local done_ips=()
+  for ip in "${list[@]}"; do
+    if [[ $action == add ]]; then
+      if out=$("$UFW" allow proto "$proto" from "$ip" to any port "$port" comment "syslogweb" 2>&1); then
+        done_ips+=("$ip")
+      else
+        errors+=("ufw no pudo abrir $port/$proto: ${out:-error}"); rc=1; break
+      fi
+    else
+      out=$("$UFW" --force delete allow proto "$proto" from "$ip" to any port "$port" 2>&1) || {
+        # Si la regla ya no existía, el resultado es el que se quería
+        [[ $out == *"non-existent"* || $out == *"inexistente"* ]] || { errors+=("ufw no pudo cerrar $port/$proto: ${out:-error}"); rc=1; }
+      }
+    fi
+  done
+  # Si abrir falló a medias, se deshace lo que sí se abrió para no dejar reglas sueltas
+  if [[ $action == add && $rc -ne 0 ]]; then
+    for ip in "${done_ips[@]+"${done_ips[@]}"}"; do "$UFW" --force delete allow proto "$proto" from "$ip" to any port "$port" >/dev/null 2>&1; done
+  fi
+  return $rc
+}
+
+# 3a. Cerrar lo que ya no se pide o cambió de IP
+for k in "${!have[@]}"; do
+  if [[ ${want[$k]:-} != "${have[$k]}" ]]; then
+    ufw_change del "${k%%|*}" "${k##*|}" "${have[$k]}" && unset 'have[$k]'
+  fi
+done
+# 3b. Abrir lo nuevo o lo que cambió
+for k in "${!want[@]}"; do
+  if [[ ${have[$k]:-} != "${want[$k]}" ]]; then
+    ufw_change add "${k%%|*}" "${k##*|}" "${want[$k]}" && have[$k]=${want[$k]}
+  fi
+done
+
+# ───────── 4. Recordar lo aplicado y avisar a la web ─────────
+tmp=$(mktemp "$STATE_DIR/.applied.XXXXXX")
+for k in "${!have[@]}"; do printf '%s %s %s\n' "${k%%|*}" "${k##*|}" "${have[$k]}"; done | sort > "$tmp"
+mv -T "$tmp" "$APPLIED"
+
+write_status
+exit 0

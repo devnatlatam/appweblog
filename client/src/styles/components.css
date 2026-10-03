@@ -1,0 +1,144 @@
+/* ───────── Botones ───────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 0 16px; border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--text);
+  font-weight: 550; font-size: 0.9rem; text-decoration: none; white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--text-faint); }
+.btn--primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn--primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn--danger { color: var(--crit); border-color: color-mix(in srgb, var(--crit) 45%, var(--line)); }
+.btn--danger:hover { background: var(--crit-soft); border-color: var(--crit); }
+.btn--ghost { border-color: transparent; background: transparent; }
+.btn--sm { min-height: 34px; padding: 0 12px; font-size: 0.85rem; }
+.btn--block { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.icon-btn {
+  width: 40px; height: 40px; display: inline-grid; place-items: center; flex: none;
+  border-radius: var(--radius-s); border: 1px solid transparent; background: transparent; color: var(--text-dim);
+}
+.icon-btn:hover { background: var(--surface); border-color: var(--line); color: var(--text); }
+
+/* ───────── Tarjetas / paneles ───────── */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m); }
+.panel__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 0; flex-wrap: wrap; }
+.panel__head p { font-size: 0.85rem; color: var(--text-dim); }
+.panel__body { padding: 16px 18px 18px; }
+
+/* ───────── Formularios ───────── */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .label { font-size: 0.85rem; font-weight: 550; color: var(--text); }
+.hint { font-size: 0.8rem; color: var(--text-faint); }
+
+.input, .select {
+  width: 100%; min-height: 42px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-s);
+  background: var(--surface); color: var(--text);
+}
+.input::placeholder { color: var(--text-faint); }
+.input:hover, .select:hover { border-color: var(--text-faint); }
+.input:focus, .select:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
+.input-wrap { position: relative; }
+.input-wrap > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); pointer-events: none; }
+.input-wrap .input { padding-left: 38px; }
+.input-wrap .reveal { position: absolute; right: 2px; top: 1px; }
+
+.check { display: flex; align-items: center; gap: 10px; min-height: 36px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+.switch { position: relative; width: 42px; height: 24px; flex: none; display: inline-block; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; background: var(--line-strong); border-radius: 99px; transition: background 0.15s; }
+.switch span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform 0.15s; }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { box-shadow: var(--focus); }
+
+.form-error {
+  display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px;
+  background: var(--crit-soft); color: var(--crit); border-radius: var(--radius-s); font-size: 0.88rem;
+}
+
+/* ───────── Insignias ───────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px;
+  border-radius: 99px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+  background: var(--surface-2); color: var(--text-dim);
+}
+.badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.badge--critical { background: var(--crit-soft); color: var(--crit); }
+.badge--error { background: var(--err-soft); color: var(--err); }
+.badge--warning { background: var(--warn-soft); color: var(--warn); }
+.badge--info { background: var(--info-soft); color: var(--info); }
+.badge--ok { background: var(--ok-soft); color: var(--ok); }
+.badge--accent { background: var(--accent-soft); color: var(--accent-strong); }
+.badge--plain::before { display: none; }
+
+/* ───────── Tablas ───────── */
+.table-wrap { overflow-x: auto; }
+.table th {
+  text-align: left; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);
+  padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--surface-2);
+}
+.table td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: var(--surface-2); }
+.table .cell-main { font-weight: 600; }
+.table .cell-sub { font-size: 0.82rem; color: var(--text-dim); }
+
+/* ───────── Pestañas y chips ───────── */
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px;
+  border-radius: 99px; border: 1px solid var(--line-strong); background: var(--surface);
+  font-size: 0.85rem; font-weight: 550; color: var(--text-dim);
+}
+.chip:hover { border-color: var(--text-faint); color: var(--text); }
+.chip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: #fff; }
+:root[data-theme='dark'] .chip[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.chip__n { font-family: var(--font-mono); font-size: 0.78rem; opacity: 0.8; }
+
+/* ───────── Aviso (toast) ───────── */
+.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  display: flex; gap: 10px; align-items: center; padding: 12px 16px; min-width: 240px; max-width: 360px;
+  background: var(--ink); color: #fff; border-radius: var(--radius-m); box-shadow: var(--shadow-pop);
+  animation: toast-in 0.2s ease-out; font-size: 0.9rem;
+}
+.toast--success svg { color: #5fd08a; }
+.toast--error svg { color: #ff7b72; }
+.toast--info svg { color: #7fb2f5; }
+@keyframes toast-in { from { transform: translateY(8px); opacity: 0; } }
+@media (max-width: 640px) { .toasts { left: 12px; right: 12px; bottom: 76px; } .toast { max-width: none; } }
+
+/* ───────── Diálogo / panel lateral ───────── */
+.overlay { position: fixed; inset: 0; background: rgba(5, 15, 18, 0.55); z-index: 60; display: flex; justify-content: flex-end; animation: fade 0.18s; }
+.overlay--center { justify-content: center; align-items: center; padding: 16px; }
+.drawer {
+  width: min(560px, 100%); height: 100%; overflow-y: auto; background: var(--surface);
+  box-shadow: var(--shadow-pop); animation: slide-in 0.22s ease-out; display: flex; flex-direction: column;
+}
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
+.modal {
+  width: min(480px, 100%); max-height: 100%; overflow-y: auto; background: var(--surface);
+  border-radius: var(--radius-l); box-shadow: var(--shadow-pop); animation: pop 0.18s ease-out;
+}
+@keyframes pop { from { transform: scale(0.97); opacity: 0; } }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.dialog-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.dialog-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--line); margin-top: auto; }
+@media (max-width: 640px) {
+  .overlay { align-items: flex-end; }
+  .drawer { height: 92%; border-radius: var(--radius-l) var(--radius-l) 0 0; animation: sheet-in 0.24s ease-out; }
+  @keyframes sheet-in { from { transform: translateY(40px); opacity: 0; } }
+  .modal { border-radius: var(--radius-l) var(--radius-l) 0 0; }
+  .overlay--center { align-items: flex-end; padding: 0; }
+}
+
+/* ───────── Vacío ───────── */
+.empty { text-align: center; padding: 48px 20px; color: var(--text-dim); }
+.empty svg { color: var(--text-faint); margin-bottom: 10px; }
+.empty h3 { color: var(--text); margin-bottom: 4px; }

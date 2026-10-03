@@ -1,0 +1,11 @@
+# /etc/systemd/system/syslogweb-fw.path
+# Cada vez que la web actualiza su lista de puertos, lanza syslogweb-fw.service
+[Unit]
+Description=Vigila la lista de puertos de Syslog Web
+
+[Path]
+PathChanged=/var/lib/syslogweb/firewall.desired
+Unit=syslogweb-fw.service
+
+[Install]
+WantedBy=multi-user.target

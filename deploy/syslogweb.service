@@ -1,0 +1,29 @@
+# /etc/systemd/system/syslogweb.service
+[Unit]
+Description=Syslog Web (API + colector de puertos)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=syslogweb
+Group=syslogweb
+WorkingDirectory=/opt/syslogweb/server
+ExecStart=/usr/bin/node src/index.js
+# Carpeta donde la web deja su lista de puertos para el firewall
+StateDirectory=syslogweb
+Restart=always
+RestartSec=3
+
+# Permite abrir puertos menores a 1024 (por ejemplo el 514) sin correr como root
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# Endurecimiento básico
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
