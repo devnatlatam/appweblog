@@ -52,7 +52,7 @@ export const PERMISSION_GROUPS = [
   {
     group: 'Clasificación de logs',
     items: [
-      { key: 'types.review', label: 'Aprobar o rechazar los tipos de log nuevos' },
+      { key: 'types.review', label: 'Aprobar o rechazar los tipos de log nuevos y cambiar la severidad de cada tipo' },
     ],
   },
   {

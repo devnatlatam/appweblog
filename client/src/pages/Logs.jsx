@@ -6,7 +6,7 @@ import { useEvents } from '../context/EventsContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { SEVERITIES, SEVERITY_ORDER } from '../data/severity';
-import { moduleLabel, FILTER_MODULES, PORT_NAMES, cleanHost } from '../data/catalog';
+import { moduleLabel, FILTER_MODULES, CATEGORIES, PORT_NAMES, cleanHost } from '../data/catalog';
 import EventDetail from '../components/EventDetail';
 import { PageHead, SeverityBadge, Empty, timeShort } from '../components/ui';
 
@@ -47,6 +47,7 @@ export default function Logs({ clientId = null, embedded = false }) {
   const [qLive, setQLive] = useState(from.q || '');
   const [sev, setSev] = useState([]);
   const [module, setModule] = useState(from.module || '');
+  const [category, setCategory] = useState(from.category || '');
   const client = clientId ? String(clientId) : '';
   const [hours, setHours] = useState(24);
   const [pending, setPending] = useState(Boolean(from.pending));
@@ -63,7 +64,8 @@ export default function Logs({ clientId = null, embedded = false }) {
   const [openId, setOpenId] = useState(null);
   const req = useRef(0);
   const grouped = groupSecs > 0;
-  const fwView = module === 'firewall' && !grouped;
+  // Columnas del firewall (acción, origen, destino, puertos, protocolo): al elegir ese tipo o si hay eventos de firewall a la vista
+  const fwView = !grouped && (module === 'firewall' || items.some((e) => e.module === 'firewall'));
 
   // Pequeña espera al escribir para no consultar en cada tecla
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function Logs({ clientId = null, embedded = false }) {
   }, [q]);
 
   const filterParams = {
-    q: qLive, sev: sev.join(','), module, client, ack: pending ? '0' : '',
+    q: qLive, sev: sev.join(','), module, category, client, ack: pending ? '0' : '',
     ...(win ? { since: win.since, until: win.until } : { hours }),
   };
 
@@ -89,7 +91,7 @@ export default function Logs({ clientId = null, embedded = false }) {
       .catch((e) => { if (id === req.current) setError(e.message); })
       .finally(() => { if (id === req.current) setLoading(false); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qLive, sev.join(','), module, client, hours, pending, groupSecs, win && win.since]);
+  }, [qLive, sev.join(','), module, category, client, hours, pending, groupSecs, win && win.since]);
 
   useEffect(() => { setItems([]); setGroups([]); load(); }, [load]);
 
@@ -151,8 +153,8 @@ export default function Logs({ clientId = null, embedded = false }) {
 
   const selected = openId ? items.find((e) => e.id === openId) : null;
   const toggleSev = (s) => setSev((l) => (l.includes(s) ? l.filter((x) => x !== s) : [...l, s]));
-  const clear = () => { setQ(''); setQLive(''); setSev([]); setModule(''); setPending(false); setWin(null); };
-  const hasFilters = q || sev.length || module || pending || win;
+  const clear = () => { setQ(''); setQLive(''); setSev([]); setModule(''); setCategory(''); setPending(false); setWin(null); };
+  const hasFilters = q || sev.length || module || category || pending || win;
 
   const exportCsv = () => {
     apiDownload(`/events/export${qs(filterParams)}`, 'registros.csv')
@@ -191,6 +193,10 @@ export default function Logs({ clientId = null, embedded = false }) {
           <select className="select filters__sel" value={module} onChange={(e) => setModule(e.target.value)} aria-label="Tipo de log">
             <option value="">Todos los tipos</option>
             {FILTER_MODULES.map((m) => <option key={m} value={m}>{moduleLabel(m)}</option>)}
+          </select>
+          <select className="select filters__sel" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categoría">
+            <option value="">Todas las categorías</option>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select className="select filters__sel filters__sel--wide" value={groupSecs} onChange={(e) => setGroupSecs(Number(e.target.value))} aria-label="Agrupar repetidos">
             {GROUPS.map((g) => <option key={g.v} value={g.v}>{g.label}</option>)}
@@ -268,45 +274,34 @@ export default function Logs({ clientId = null, embedded = false }) {
         ) : (
           <>
             <div className="table-wrap logs-table">
-              {fwView ? (
-                <table className="table">
-                  <thead>
-                    <tr><th>Hora</th><th>Severidad</th><th>Acción</th><th>Origen</th><th>Destino</th><th>Puerto destino</th><th>Qué pasó</th></tr>
-                  </thead>
-                  <tbody>
-                    {items.map((e) => {
-                      const f = e.fields || {};
-                      const svc = PORT_NAMES[f.dport];
-                      return (
-                        <tr key={rowKey(e)} className={`row-click${e.acknowledged ? ' is-done' : ''}`} tabIndex={0} onClick={() => setOpenId(e.id)} onKeyDown={onRowKey(e.id)}>
-                          <td className="mono nowrap">{timeShort(e.ts)}</td>
-                          <td><SeverityBadge severity={e.severity} /></td>
-                          <td><ActionBadge action={f.action} /></td>
-                          <td className="nowrap"><span className="mono">{f.src || '—'}</span>{f.sport ? <div className="cell-sub mono">puerto {f.sport}</div> : null}</td>
-                          <td className="nowrap"><span className="mono">{f.dst || '—'}</span></td>
-                          <td className="nowrap">
-                            <span className="mono cell-main">{f.dport ?? '—'}</span>
-                            <div className="cell-sub">{[f.proto, svc].filter(Boolean).join(' · ')}</div>
-                          </td>
-                          <td>
-                            <div className="cell-main">{e.summary}</div>
-                            {e.aclName && <div className="cell-sub">Regla {e.aclName}</div>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <table className="table">
-                  <thead>
-                    <tr><th>Hora</th><th>Severidad</th><th>Qué pasó</th><th>Equipo</th><th>Tipo</th></tr>
-                  </thead>
-                  <tbody>
-                    {items.map((e) => (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Hora</th><th>Severidad</th>
+                    {fwView && <><th>Acción</th><th>Origen</th><th>Puerto origen</th><th>Destino</th><th>Puerto destino</th><th>Protocolo</th></>}
+                    <th>Qué pasó</th><th>Equipo</th><th>Tipo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((e) => {
+                    const f = e.fields || {};
+                    return (
                       <tr key={rowKey(e)} className={`row-click${e.acknowledged ? ' is-done' : ''}`} tabIndex={0} onClick={() => setOpenId(e.id)} onKeyDown={onRowKey(e.id)}>
                         <td className="mono nowrap">{timeShort(e.ts)}</td>
                         <td><SeverityBadge severity={e.severity} /></td>
+                        {fwView && (
+                          <>
+                            <td>{e.module === 'firewall' ? <ActionBadge action={f.action} /> : <span className="cell-sub">—</span>}</td>
+                            <td className="nowrap mono">{f.src || <span className="cell-sub">—</span>}</td>
+                            <td className="nowrap mono">{f.sport ?? <span className="cell-sub">—</span>}</td>
+                            <td className="nowrap mono">{f.dst || <span className="cell-sub">—</span>}</td>
+                            <td className="nowrap">
+                              <span className="mono cell-main">{f.dport ?? '—'}</span>
+                              {PORT_NAMES[f.dport] && <div className="cell-sub">{PORT_NAMES[f.dport]}</div>}
+                            </td>
+                            <td className="nowrap">{f.proto ? String(f.proto).toUpperCase() : <span className="cell-sub">—</span>}</td>
+                          </>
+                        )}
                         <td>
                           <div className="cell-main">{e.summary}</div>
                           {e.aclName && <div className="cell-sub">Regla {e.aclName}</div>}
@@ -314,10 +309,10 @@ export default function Logs({ clientId = null, embedded = false }) {
                         <td className="nowrap">{cleanHost(e.host) || e.sourceIp}</td>
                         <td className="nowrap">{moduleLabel(e.module)}</td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             <ul className="log-cards">

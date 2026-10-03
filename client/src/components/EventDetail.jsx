@@ -1,20 +1,23 @@
-import React from 'react';
-import { CheckCheck, Copy, Lightbulb, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCheck, Copy, Lightbulb, Info, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { interpret, moduleLabel, FIELD_LABELS, cleanHost } from '../data/catalog';
 import { SeverityBadge, Dialog, dateLong } from './ui';
+import SeverityRuleDialog from './SeverityRuleDialog';
 
 export default function EventDetail({ event, onClose, onAck }) {
   const { can } = useAuth();
   const toast = useToast();
   const { meaning, action } = interpret(event);
+  const [recat, setRecat] = useState(false);
 
   const copy = () => {
     if (navigator.clipboard) navigator.clipboard.writeText(event.raw).then(() => toast('Mensaje copiado'));
   };
 
   return (
+    <>
     <Dialog
       title="Detalle del evento"
       onClose={onClose}
@@ -32,6 +35,9 @@ export default function EventDetail({ event, onClose, onAck }) {
           <SeverityBadge severity={event.severity} />
           <span className="badge badge--plain">{moduleLabel(event.module)}</span>
           {event.acknowledged && <span className="badge badge--ok">Revisado</span>}
+          {can('types.review') && (
+            <button type="button" className="btn btn--sm btn--ghost" onClick={() => setRecat(true)}><SlidersHorizontal size={16} /> Cambiar severidad</button>
+          )}
         </div>
 
         <div>
@@ -73,5 +79,7 @@ export default function EventDetail({ event, onClose, onAck }) {
         )}
       </div>
     </Dialog>
+    {recat && <SeverityRuleDialog initial={{ module: event.module, clientId: event.clientId }} onClose={() => setRecat(false)} />}
+    </>
   );
 }

@@ -369,3 +369,6 @@ i.seg { width: 10px; height: 10px; border-radius: 3px; }
 .spark span { flex: 1; min-width: 0; background: var(--accent); opacity: 0.6; border-radius: 2px 2px 0 0; }
 .spark span.is-err { background: var(--crit); opacity: 0.95; }
 .spark span.is-zero { height: 2px; background: var(--line-strong); opacity: 1; }
+
+.bars__link { color: var(--text); text-decoration: none; }
+.bars__link:hover { color: var(--accent); text-decoration: underline; }

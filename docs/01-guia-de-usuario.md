@@ -72,10 +72,10 @@ El historial completo, guardado en la base de datos.
 
 - **Buscar** por texto, IP o dirección MAC.
 - **Período:** última hora, 6 horas, 24 horas o 7 días.
-- **Tipo de log, severidad y "Sin revisar"** como filtros.
+- **Tipo de log, categoría, severidad y "Sin revisar"** como filtros. La **categoría** (Red, Firewall, Seguridad, Conectividad, VPN, Configuración, Controlador, Sistema u Otros) agrupa los tipos por tema. Desde el *Resumen* de un cliente, tocar una categoría en "Por categoría" abre los registros ya filtrados.
 - **Mostrar más** carga los siguientes. El total se muestra hasta "más de 10.000".
 - **Agrupar repetidos:** el firewall genera miles de líneas iguales (por ejemplo, el mismo equipo consultando el DNS cada 2 segundos). Con esta opción, los eventos iguales de un mismo tramo (1 min, 5 min, 15 min o 1 hora) se muestran en **una fila con su cantidad** (`×25`). Al tocar la fila ves los eventos reales de ese tramo. **No se pierde nada:** se guardan todos, solo cambia cómo se muestran.
-- **Vista del firewall:** si eliges el tipo **Firewall**, la tabla muestra lo que importa de cada paquete: **Acción** (Permitido o Bloqueado), **Origen** (IP y puerto de origen), **Destino** y **Puerto destino** (con el protocolo y el servicio, por ejemplo `53 · UDP · DNS`). Si la regla tiene nombre, aparece bajo el resumen. En los demás tipos se muestra el equipo que envió el log.
+- **Columnas del firewall:** cuando hay eventos de firewall a la vista (o eliges ese tipo), la tabla añade lo que importa de cada paquete: **Acción** (Permitido o Bloqueado), **Origen**, **Puerto origen**, **Destino**, **Puerto destino** (con el nombre del servicio, por ejemplo `53` · DNS) y **Protocolo**. En los eventos que no son de firewall esas celdas quedan con un guion. Si la regla tiene nombre, aparece bajo el resumen. Si no hay nada de firewall a la vista, las columnas no se muestran.
 - **Exportar CSV** (si tu rol lo permite): descarga lo que coincide con los filtros actuales, hasta 50.000 filas. Con el tipo Firewall elegido, el archivo incluye también las columnas de acción, origen, destino, puerto, protocolo y regla.
 
 ### Incidentes
@@ -101,6 +101,7 @@ Al tocar un evento se abre un panel con:
 - **Datos extraídos:** IP, MAC, puertos, regla del firewall, etc. Si la regla del firewall tiene nombre (porque el controlador lo informó), se muestra, por ejemplo `DMZ (1571129632)`.
 - **Mensaje original (syslog):** el texto tal como lo envió el equipo, con botón *Copiar*. *Solo lo ven operadores, administradores y superadmins.*
 - **Marcar como revisado**, si tu rol lo permite.
+- **Cambiar severidad** (solo administradores): abre una ventana para decidir con qué severidad se guardan los avisos de ese tipo. Ver [Cambiar la severidad](02-guia-del-administrador.md#cambiar-la-severidad-de-un-tipo-de-log).
 
 En los cambios de configuración del controlador, los datos incluyen **qué campo cambió y de qué valor a cuál** (por ejemplo `syslog: false → true`).
 

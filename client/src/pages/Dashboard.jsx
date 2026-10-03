@@ -141,7 +141,9 @@ export default function Dashboard({ clientId = null, embedded = false }) {
               <ul className="bars">
                 {byCategory.map((c) => (
                   <li key={c.category}>
-                    <span>{c.category}</span>
+                    {clientId && can('logs.view')
+                      ? <Link to={`/clientes/${clientId}/registros`} state={{ category: c.category }} className="bars__link" title={`Ver los registros de ${c.category}`}>{c.category}</Link>
+                      : <span>{c.category}</span>}
                     <span className="bars__track"><span style={{ width: `${(c.n / maxCat) * 100}%` }} /></span>
                     <span className="mono">{fmt(c.n)}</span>
                   </li>

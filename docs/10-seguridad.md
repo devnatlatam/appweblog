@@ -19,7 +19,7 @@ Cuatro niveles; cada uno incluye todo lo del anterior (salvo lo indicado).
 | `ports.manage` — crear, editar, eliminar clientes | — | — | ✔ | ✔ |
 | `alerts.manage` — crear, editar, apagar reglas | — | — | ✔ | ✔ |
 | `storage.manage` — retención y borrado | — | — | ✔ | ✔ |
-| `types.review` — aprobar tipos de log nuevos | — | — | ✔ | ✔ |
+| `types.review` — aprobar tipos de log nuevos y cambiar la severidad de cada tipo | — | — | ✔ | ✔ |
 | `settings.manage` — correo | — | — | ✔ | ✔ |
 | `users.manage` — usuarios | — | — | ✔ | ✔ |
 | `roles.manage` — ver la pantalla de roles | — | — | — | ✔ |

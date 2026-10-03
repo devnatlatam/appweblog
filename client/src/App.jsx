@@ -13,6 +13,7 @@ import Roles from './pages/admin/Roles';
 import Storage from './pages/admin/Storage';
 import Mail from './pages/admin/Mail';
 import Types from './pages/admin/Types';
+import Severity from './pages/admin/Severity';
 import NotFound from './pages/NotFound';
 import ChangePassword from './pages/ChangePassword';
 
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="admin/usuarios" element={<Guard perm="users.manage"><Users /></Guard>} />
         <Route path="admin/roles" element={<Guard perm="roles.manage"><Roles /></Guard>} />
         <Route path="admin/por-aprobar" element={<Guard perm="types.review"><Types /></Guard>} />
+        <Route path="admin/severidad" element={<Guard perm="types.review"><Severity /></Guard>} />
         <Route path="admin/correo" element={<Guard perm="settings.manage"><Mail /></Guard>} />
         <Route path="admin/almacenamiento" element={<Guard perm="storage.manage"><Storage /></Guard>} />
         <Route path="*" element={<NotFound />} />

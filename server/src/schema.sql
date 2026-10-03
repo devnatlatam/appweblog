@@ -164,3 +164,16 @@ CREATE TABLE IF NOT EXISTS alert_history (
   recipients  TEXT[]
 );
 CREATE INDEX IF NOT EXISTS alert_history_ts_idx ON alert_history (ts DESC);
+
+-- Cambios de severidad que decide el administrador: "los avisos de este tipo (y, si se indica, de este cliente o que
+-- contengan este texto) se guardan con esta severidad". Los aplica src/severity-rules.js al guardar cada evento.
+CREATE TABLE IF NOT EXISTS severity_rules (
+  id         SERIAL PRIMARY KEY,
+  module     TEXT NOT NULL,
+  client_id  INTEGER REFERENCES clients_ports(id) ON DELETE CASCADE, -- NULL = todos los clientes
+  match      TEXT,                                                    -- NULL = cualquier mensaje; si no, el resumen debe contenerlo
+  severity   SMALLINT NOT NULL CHECK (severity BETWEEN 0 AND 7),
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS severity_rules_uq ON severity_rules (module, COALESCE(client_id, 0), COALESCE(lower(match), ''));

@@ -188,6 +188,7 @@ app.use('/api', require('./events-api'));
 app.use('/api', require('./ports-api'));
 app.use('/api', require('./storage-api'));
 app.use('/api', require('./types-api'));
+app.use('/api', require('./severity-rules'));
 app.use('/api', require('./incidents-api'));
 app.use('/api', require('./settings-api'));
 app.use('/api', require('./alerts-api'));

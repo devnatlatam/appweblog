@@ -141,3 +141,6 @@ export const INCIDENT_INFO = {
     action: () => 'Ubica el equipo por su IP o MAC (ver "Datos del primer aviso") y apaga su servidor DHCP. Suele ser un router, repetidor o punto de acceso conectado por error.',
   },
 };
+
+// Categorías con las que el servidor clasifica los logs (para filtrar)
+export const CATEGORIES = ['Red', 'Firewall', 'Seguridad', 'Conectividad', 'VPN', 'Configuración', 'Controlador', 'Sistema', 'Otros'];

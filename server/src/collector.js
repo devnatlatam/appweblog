@@ -22,6 +22,7 @@ function friendly(err, port) {
   return err.message;
 }
 
+const severityRules = require('./severity-rules');
 const clean = (ip) => String(ip || '').replace(/^::ffff:/, '');
 
 class Collector extends EventEmitter {
@@ -47,6 +48,7 @@ class Collector extends EventEmitter {
     const t = await pool.query('SELECT id, client_id, type_key, status, category FROM log_types');
     t.rows.forEach((r) => this.setType(r.client_id, r.type_key, r));
     await insights.load();
+    await severityRules.load();
     this.timer = setInterval(() => this.flush(), FLUSH_MS);
     this.autoTimer = setInterval(() => insights.autoClose().catch((e) => console.error('Incidentes:', e.message)), 30000);
   }
@@ -200,7 +202,7 @@ class Collector extends EventEmitter {
     for (const day of new Set(batch.map((b) => dayOf(b.ev.ts)))) await ensurePartition(day);
     const params = [];
     const values = batch.map((b, i) => {
-      const e = b.ev;
+      const e = severityRules.apply(b.ev, b.clientId);
       params.push(e.ts, e.deviceTs, e.sourceIp, e.host, b.clientId, b.port, e.module, e.severity, e.category,
         e.summary, JSON.stringify(e.fields), e.message, e.raw, e.typeKey, Boolean(b.pending));
       const o = i * 15;

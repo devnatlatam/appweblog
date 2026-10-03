@@ -74,6 +74,25 @@ Cada tarjeta muestra el cliente, cuántos mensajes llevan y ejemplos reales (*Ve
 
 Si un cliente acumula más de 200 tipos pendientes, los nuevos se agrupan en uno solo ("Otros mensajes de …") para no abrumarte.
 
+### Cambiar la severidad de un tipo de log
+
+*Menú → Severidad*, o el botón **Cambiar severidad** en el detalle de cualquier evento.
+
+Cada tipo de log trae una severidad por defecto (por ejemplo, el *cambio de IP de origen* se guarda como Aviso). Si en tu red eso es normal —o quieres que algo sea más grave—, crea una **regla**:
+
+| Campo | Qué significa |
+|---|---|
+| **Tipo de log** | A qué tipo de aviso aplica (Firewall, Cambio de IP de origen, Conflicto de IP…). |
+| **Cliente** | Todos, o solo uno. |
+| **Solo si el mensaje contiene** | Opcional. Por ejemplo `Bloqueado` para afectar solo los bloqueos del firewall. |
+| **Severidad nueva** | Crítico, Error, Aviso o Info. |
+| **Cambiar también los eventos ya guardados** | Marcado por defecto. Cambiar lo guardado no se puede deshacer, pero puedes crear otra regla con la severidad que quieras. |
+
+- La regla se aplica a todo lo que **llegue desde ese momento**, así que también cambia lo que ven el resumen y los registros.
+- Si varias reglas coinciden, **gana la más específica**: la de un cliente concreto, y luego la que tiene texto. Al cambiar lo ya guardado, una regla general no pisa lo que decide una más específica.
+- Eliminar una regla hace que los eventos **nuevos** vuelvan a su severidad original; los ya guardados conservan la que tienen.
+- Los incidentes (internet caído, túnel caído…) siguen su propia severidad. La regla cambia la de los avisos individuales.
+
 ## 3. Correo
 
 *Menú → Administración → Correo.*

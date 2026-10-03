@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive, Mail, ChevronsUpDown, LayoutGrid,
+  LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive, Mail, ChevronsUpDown, LayoutGrid, SlidersHorizontal,
   Menu, Sun, Moon, LogOut, Activity, Pause, Play, Radio, ListChecks,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +24,7 @@ function buildNav(clients, can) {
   }
   nav.push({ to: '/alertas', label: 'Alertas', icon: BellRing, perm: 'alerts.view', tab: true });
   nav.push({ to: '/admin/por-aprobar', label: 'Por aprobar', icon: ListChecks, perm: 'types.review', typesBadge: true });
+  nav.push({ to: '/admin/severidad', label: 'Severidad', icon: SlidersHorizontal, perm: 'types.review' });
   nav.push({ group: 'Administración' });
   nav.push({ to: '/admin/usuarios', label: 'Usuarios', icon: Users, perm: 'users.manage' });
   nav.push({ to: '/admin/roles', label: 'Roles y permisos', icon: ShieldCheck, perm: 'roles.manage' });
@@ -33,7 +34,7 @@ function buildNav(clients, can) {
 }
 
 const TITLES = {
-  '/': 'Resumen general', '/clientes': 'Clientes', '/puertos': 'Clientes y puertos', '/alertas': 'Alertas', '/admin/por-aprobar': 'Por aprobar',
+  '/': 'Resumen general', '/clientes': 'Clientes', '/puertos': 'Clientes y puertos', '/alertas': 'Alertas', '/admin/por-aprobar': 'Por aprobar', '/admin/severidad': 'Severidad',
   '/admin/usuarios': 'Usuarios', '/admin/roles': 'Roles y permisos', '/admin/almacenamiento': 'Almacenamiento', '/admin/correo': 'Correo',
 };
 

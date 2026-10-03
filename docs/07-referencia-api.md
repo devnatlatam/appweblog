@@ -70,6 +70,7 @@ Objeto `port`: `{ id, clientName, port, protocol, isActive, allowedIps[], lastSe
 | `since`, `until` | Rango exacto (ISO). Reemplaza a `hours` |
 | `sev` | Lista separada por comas: `critical,error,warning,info` |
 | `module` | Tipo exacto (ej. `firewall`) |
+| `category` | Categoría exacta (ej. `Firewall`, `VPN`, `Red`) |
 | `ip` | IP de origen (contiene) |
 | `ack` | `0` = solo sin revisar |
 | `q` | Texto (hasta 100 caracteres) en resumen, mensaje, equipo e IP |
@@ -133,6 +134,18 @@ El detalle de un incidente: `{ incident, opening, events[], total }`.
 | `POST /types/:id/reopen` | `{ ok }` |
 
 Categorías válidas: Red, Firewall, Seguridad, Conectividad, Configuración, VPN, Sistema, Controlador, Otros.
+
+## Reglas de severidad · `types.review`
+
+| Ruta | Respuesta |
+|---|---|
+| `GET /severity-rules` | `{ rules[] }` — `{ id, module, clientId, clientName, match, severity, createdBy, createdAt }` |
+| `POST /severity-rules` — `{ module, severity, clientId?, match?, applyStored? }` | `201 { ok, changed }` (`changed`: eventos ya guardados que se modificaron) |
+| `DELETE /severity-rules/:id` | `{ ok }` · `404` si no existe |
+
+- `severity`: `critical` (2), `error` (3), `warning` (4) o `info` (6).
+- Crear una regla igual a otra existente (mismo tipo, cliente y texto) cambia su severidad en vez de duplicarla.
+- Gana la regla más específica: con cliente concreto, y luego con texto. Se aplica al guardar cada evento; con `applyStored: true` también a los ya guardados, sin pisar lo que decida una regla más específica.
 
 ## Almacenamiento · `storage.manage`
 

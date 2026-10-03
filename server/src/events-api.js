@@ -36,6 +36,7 @@ function buildFilters(q) {
 
   const sevs = String(q.sev || '').split(',').filter((s) => SEV_COND[s]);
   if (sevs.length) where.push(`(${sevs.map((s) => SEV_COND[s]).join(' OR ')})`);
+  if (q.category) where.push(`e.category = ${push(String(q.category))}`);
   if (q.module) where.push(`e.module = ${push(String(q.module))}`);
   if (q.client && Number.isInteger(Number(q.client))) where.push(`e.client_id = ${push(Number(q.client))}`);
   if (q.ip) where.push(`e.source_ip LIKE ${push(`%${String(q.ip).trim().slice(0, 45).replace(/[\\%_]/g, '\\$&')}%`)}`);
