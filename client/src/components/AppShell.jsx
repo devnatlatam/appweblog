@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive,
+  LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive, Mail, ChevronsUpDown,
   Menu, Sun, Moon, LogOut, Activity, Pause, Play, Radio, ListChecks,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { EventsProvider, useEvents } from '../context/EventsContext';
 import { ROLES } from '../data/roles';
+import AccountDialog from './AccountDialog';
 import { api } from '../api';
 
 const clientState = (c) => (c.listening ? 'on' : c.isActive ? 'err' : 'off');
@@ -26,12 +27,13 @@ function buildNav(clients, can) {
   nav.push({ to: '/admin/usuarios', label: 'Usuarios', icon: Users, perm: 'users.manage' });
   nav.push({ to: '/admin/roles', label: 'Roles y permisos', icon: ShieldCheck, perm: 'roles.manage' });
   nav.push({ to: '/admin/almacenamiento', label: 'Almacenamiento', icon: HardDrive, perm: 'storage.manage' });
+  nav.push({ to: '/admin/correo', label: 'Correo', icon: Mail, perm: 'settings.manage' });
   return nav;
 }
 
 const TITLES = {
   '/': 'Resumen general', '/puertos': 'Clientes y puertos', '/alertas': 'Alertas', '/admin/por-aprobar': 'Por aprobar',
-  '/admin/usuarios': 'Usuarios', '/admin/roles': 'Roles y permisos', '/admin/almacenamiento': 'Almacenamiento',
+  '/admin/usuarios': 'Usuarios', '/admin/roles': 'Roles y permisos', '/admin/almacenamiento': 'Almacenamiento', '/admin/correo': 'Correo',
 };
 
 const initials = (name) => name.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
@@ -41,6 +43,7 @@ function Shell() {
   const { theme, toggle } = useTheme();
   const { live, setLive, pending } = useEvents();
   const [open, setOpen] = useState(false);
+  const [account, setAccount] = useState(false);
   const location = useLocation();
   const [clients, setClients] = useState([]);
   const [typesPending, setTypesPending] = useState(0);
@@ -113,13 +116,14 @@ function Shell() {
         </nav>
 
         <div className="sidebar__foot">
-          <div className="me">
+          <button type="button" className="me" onClick={() => setAccount(true)} aria-label="Mi cuenta: cambiar nombre o contraseña">
             <span className="avatar" aria-hidden="true">{initials(user.name)}</span>
             <div>
               <div className="me__name">{user.name}</div>
               <div className="me__role">{ROLES[user.role].label}</div>
             </div>
-          </div>
+            <ChevronsUpDown size={16} aria-hidden="true" className="me__chev" />
+          </button>
           <button type="button" className="nav__link" style={{ width: '100%', background: 'none', border: 0 }} onClick={logout}>
             <LogOut size={19} aria-hidden="true" /> Cerrar sesión
           </button>
@@ -157,6 +161,8 @@ function Shell() {
           <Outlet />
         </main>
       </div>
+
+      {account && <AccountDialog onClose={() => setAccount(false)} />}
 
       <nav className="tabbar" aria-label="Secciones">
         {tabs.map((n) => (

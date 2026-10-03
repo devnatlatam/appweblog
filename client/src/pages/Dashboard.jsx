@@ -8,6 +8,7 @@ import { api } from '../api';
 import { SEVERITY_ORDER, SEVERITIES } from '../data/severity';
 import { moduleLabel } from '../data/catalog';
 import { PageHead, SeverityBadge, Empty, timeAgo } from '../components/ui';
+import { OpenIncidents } from '../components/Incidents';
 
 function Stat({ icon: Icon, label, value, note, tone }) {
   return (
@@ -82,7 +83,7 @@ export default function Dashboard({ clientId = null, embedded = false }) {
     );
   }
 
-  const { totals, total, byCategory, hourly, attention, pending, sources } = summary;
+  const { totals, total, byCategory, hourly, attention, pending, sources, incidents } = summary;
   const maxCat = Math.max(1, ...byCategory.map((c) => c.n));
 
   const markGroup = async (g) => {
@@ -150,6 +151,8 @@ export default function Dashboard({ clientId = null, embedded = false }) {
           </div>
         </section>
       </div>
+
+      {incidents && <OpenIncidents list={incidents.list} total={incidents.open} />}
 
       <section className="panel" style={{ marginTop: 16 }}>
         <div className="panel__head">

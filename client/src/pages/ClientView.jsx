@@ -8,6 +8,7 @@ import { Switch, Empty, timeAgo } from '../components/ui';
 import Dashboard from './Dashboard';
 import Live from './Live';
 import Logs from './Logs';
+import Incidents from '../components/Incidents';
 
 // Espacio propio de un cliente: su resumen, su vista en vivo y sus registros. Nada de otros clientes.
 export default function ClientView() {
@@ -73,6 +74,12 @@ export default function ClientView() {
             <span className={`badge badge--${status.cls}`}>{status.text}</span>
             <span className="cell-sub">Último log: {port.lastSeen ? timeAgo(port.lastSeen).toLowerCase() : 'nunca'}</span>
           </p>
+          {port.sourceIps && port.sourceIps.length > 0 && (
+            <p className="client-head__ips cell-sub">
+              Envía desde <strong className="mono">{port.sourceIps[0].ip}</strong>
+              {port.sourceIps.length > 1 && <> · antes: {port.sourceIps.slice(1).map((x) => x.ip).join(', ')}</>}
+            </p>
+          )}
         </div>
         {can('ports.toggle') && (
           <label className="client-head__switch">
@@ -96,12 +103,18 @@ export default function ClientView() {
         <NavLink to={`/clientes/${cid}`} end className={({ isActive }) => (isActive ? 'is-active' : '')}>Resumen</NavLink>
         {can('logs.view') && <NavLink to={`/clientes/${cid}/en-vivo`} className={({ isActive }) => (isActive ? 'is-active' : '')}>En vivo</NavLink>}
         {can('logs.view') && <NavLink to={`/clientes/${cid}/registros`} className={({ isActive }) => (isActive ? 'is-active' : '')}>Registros</NavLink>}
+        {can('dashboard.view') && (
+          <NavLink to={`/clientes/${cid}/incidentes`} className={({ isActive }) => (isActive ? 'is-active' : '')}>
+            Incidentes{port.openIncidents > 0 && <span className="tab-count">{port.openIncidents}</span>}
+          </NavLink>
+        )}
       </nav>
 
       <Routes>
         <Route index element={can('dashboard.view') ? <Dashboard key={cid} clientId={cid} embedded /> : null} />
         <Route path="en-vivo" element={can('logs.view') ? <Live key={cid} clientId={cid} embedded /> : null} />
         <Route path="registros" element={can('logs.view') ? <Logs key={cid} clientId={cid} embedded /> : null} />
+        <Route path="incidentes" element={can('dashboard.view') ? <Incidents key={cid} clientId={cid} /> : null} />
       </Routes>
     </>
   );

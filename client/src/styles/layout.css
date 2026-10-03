@@ -108,3 +108,8 @@
 .dot--err { background: #ff7b72; }
 
 .nav__count--info { background: var(--accent); color: var(--on-accent); }
+
+/* El bloque del usuario abre "Mi cuenta" */
+button.me { width: 100%; background: none; border: 0; text-align: left; color: inherit; border-radius: var(--radius-s); cursor: pointer; }
+button.me:hover { background: var(--ink-2); }
+.me__chev { margin-left: auto; color: var(--ink-text-dim); flex: none; }

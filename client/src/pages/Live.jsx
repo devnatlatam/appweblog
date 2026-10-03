@@ -209,7 +209,7 @@ export default function Live({ clientId, embedded = false }) {
                   <span className={`lvl lvl--${e.severity}`} title={SEVERITIES[e.severity].label}>{SEVERITIES[e.severity].label}</span>
                   <span className="console__client">{e.host || '—'}</span>
                   <span className="mono console__ip">{e.sourceIp}</span>
-                  <span className="console__msg">{e.summary} <small>{moduleLabel(e.module)}</small></span>
+                  <span className="console__msg">{e.summary} <small>{moduleLabel(e.module)}{e.aclName ? ` · regla ${e.aclName}` : ''}</small></span>
                 </button>
               ))}
             </div>

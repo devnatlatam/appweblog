@@ -133,6 +133,20 @@ sudo certbot --nginx -d logs.tu-dominio.com
 
 Entra a `https://logs.tu-dominio.com` con el correo y la contraseña temporal del paso 6.
 
+## 9.1 Correo y alertas (se configuran desde la web)
+
+Tras entrar a la web como administrador:
+
+1. **Administración → Correo:** escribe el servidor SMTP, el puerto, el usuario y la contraseña, y pulsa *Enviar correo de prueba*. Al guardar, los datos se escriben en el archivo `/opt/syslogweb/server/.env` (claves `SMTP_*` y `APP_URL`) y valen al instante, sin reiniciar. Si los cambias después, el archivo se actualiza solo.
+2. **Alertas:** crea las reglas (quién recibe cada aviso, de qué cliente, cada cuánto). Los usuarios nuevos también pueden recibir su acceso por correo.
+
+Dos cosas del servidor que hay que tener en cuenta:
+
+- **El servicio debe poder escribir su `.env`.** Con los pasos de esta guía ya es así (`chown -R syslogweb` y `chmod 600`). Si la web dice que no pudo escribir el archivo, revisa que `/opt/syslogweb/server/.env` pertenezca a `syslogweb`.
+- **La contraseña del correo queda en texto en el `.env`**, igual que la de la base de datos, protegida por los permisos 600. La web nunca la vuelve a mostrar.
+- **Salida a internet:** el VPS debe poder conectarse al puerto SMTP (587 o 465). Algunos proveedores bloquean el 25 y a veces también el 587; si la prueba dice que no hay respuesta, pregúntale al proveedor.
+- **Dirección de la web** (en la misma pantalla): ponla (`https://logs.tu-dominio.com`) para que las alertas incluyan un enlace.
+
 ## 10. Firewall
 
 Hay dos partes: lo fijo, que haces una vez a mano, y los puertos de los clientes, que abre y cierra la propia web.
@@ -260,6 +274,8 @@ El archivo `.env` no viaja en el `.tgz`, así que tu configuración se conserva.
 | `db:init` falla con autenticación | `DB_USER` y `DB_PASSWORD` en `.env`, y que el rol del paso 3 exista. |
 | La web dice "el firewall no respondió" | El servicio no está activo: `systemctl status syslogweb-fw.path syslogweb-fw`. Revisa también que `/var/lib/syslogweb` pertenezca a `syslogweb`. |
 | La web dice "el puerto está protegido" | Intentaste usar un puerto de la lista protegida (22, 80, 443, 4000, 5432...). Elige otro. |
+| El correo de prueba falla | El mensaje dice el motivo (usuario o contraseña, puerto cerrado, servidor no encontrado). Revisa también que el VPS pueda salir al puerto SMTP. |
+| Al guardar el correo: “no se pudo escribir el archivo .env” | `/opt/syslogweb/server/.env` debe pertenecer al usuario `syslogweb`: `sudo chown syslogweb:syslogweb /opt/syslogweb/server/.env`. |
 | Un tipo de log aparece en *Por aprobar* | Es normal: es un mensaje que el sistema no reconocía. Un administrador lo aprueba o lo rechaza. |
 | Almacenamiento no muestra el disco | Revisa `DISK_PATH` en `.env` y reinicia el servicio. |
 
@@ -271,4 +287,5 @@ El archivo `.env` no viaja en el `.tgz`, así que tu configuración se conserva.
 - [ ] Paso 10.2 verificado: al apagar un cliente, su regla desaparece de `ufw status`.
 - [ ] `HOST=127.0.0.1` en `.env` (la API no es visible desde fuera).
 - [ ] HTTPS activo (paso 9).
+- [ ] Correo probado desde la web (paso 9.1).
 - [ ] Respaldo diario funcionando (paso 13).

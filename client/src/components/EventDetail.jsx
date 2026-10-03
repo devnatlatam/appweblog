@@ -56,7 +56,7 @@ export default function EventDetail({ event, onClose, onAck }) {
             <h3 className="detail-sub">Datos extraídos</h3>
             <dl className="fields">
               {Object.entries(event.fields).map(([k, v]) => (
-                <React.Fragment key={k}><dt>{FIELD_LABELS[k] || (k.startsWith('cambio.') ? `Cambió: ${k.slice(7)}` : k)}</dt><dd className="mono">{String(v)}</dd></React.Fragment>
+                <React.Fragment key={k}><dt>{FIELD_LABELS[k] || (k.startsWith('cambio.') ? `Cambió: ${k.slice(7)}` : k)}</dt><dd className="mono">{k === 'rule' && event.aclName ? `${event.aclName} (${String(v)})` : String(v)}</dd></React.Fragment>
               ))}
             </dl>
           </div>

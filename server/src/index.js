@@ -8,6 +8,9 @@ const jwt = require('jsonwebtoken');
 const pool = require('./db');
 const { LEVEL, ROLES } = require('./permissions');
 const { SECRET, auth, authAny, need } = require('./middleware');
+const mailer = require('./mailer');
+const { credentialsMail } = require('./mail-templates');
+const { audit } = require('./settings');
 
 const app = express();
 app.use(express.json());
@@ -28,6 +31,21 @@ const publicUser = (u) => ({
 });
 
 const tempPassword = () => crypto.randomBytes(9).toString('base64url');
+// Dirección de la web para los enlaces de los correos: la configurada, o desde donde se está usando
+const appUrl = (req) => process.env.APP_URL || req.get('origin') || '';
+
+// Envía el acceso por correo si se pidió. Nunca hace fallar la acción principal: el resultado va aparte.
+async function mailCredentials(req, wanted, data) {
+  if (!wanted) return { sent: false };
+  if (!mailer.isConfigured()) return { sent: false, error: 'El correo todavía no está configurado (Administración → Correo).' };
+  try {
+    await mailer.send({ to: data.email, ...credentialsMail({ ...data, url: appUrl(req) }) });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, error: e.message };
+  }
+}
+
 const validEmail = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 // ───────── Sesión ─────────
@@ -52,6 +70,13 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', authAny, (req, res) => res.json({ user: publicUser(req.user) }));
 
+app.patch('/api/auth/me', auth, async (req, res) => {
+  const name = String((req.body || {}).name || '').trim();
+  if (!name || name.length > 80) return res.status(400).json({ error: 'Escribe tu nombre (hasta 80 caracteres).' });
+  const { rows } = await pool.query('UPDATE users SET name = $1 WHERE id = $2 RETURNING *', [name, req.user.id]);
+  res.json({ user: publicUser(rows[0]) });
+});
+
 app.post('/api/auth/change-password', authAny, async (req, res) => {
   const { current, next } = req.body || {};
   if (typeof next !== 'string' || next.length < 10) return res.status(400).json({ error: 'La contraseña nueva debe tener al menos 10 caracteres.' });
@@ -73,11 +98,11 @@ const canManage = (actor, target) => LEVEL[target.role] <= LEVEL[actor.role] && 
 
 app.get('/api/users', auth, need('users.manage'), async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM users ORDER BY id');
-  res.json({ users: rows.map(publicUser) });
+  res.json({ users: rows.map(publicUser), mailConfigured: mailer.isConfigured() });
 });
 
 app.post('/api/users', auth, need('users.manage'), async (req, res) => {
-  const { name, email, role } = req.body || {};
+  const { name, email, role, sendEmail } = req.body || {};
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'Escribe el nombre.' });
   if (!validEmail(email)) return res.status(400).json({ error: 'El correo no es válido.' });
   if (!ROLES.includes(role)) return res.status(400).json({ error: 'Elige un rol válido.' });
@@ -92,7 +117,9 @@ app.post('/api/users', auth, need('users.manage'), async (req, res) => {
      VALUES ($1, $2, $3, $4, 'active', TRUE) RETURNING *`,
     [String(name).trim(), email.trim(), await bcrypt.hash(password, 12), role]
   );
-  res.status(201).json({ user: publicUser(rows[0]), tempPassword: password });
+  const mail = await mailCredentials(req, sendEmail === true, { name: rows[0].name, email: rows[0].email, password });
+  await audit(req.user.id, 'user.create', { id: rows[0].id, email: rows[0].email, role, emailed: mail.sent });
+  res.status(201).json({ user: publicUser(rows[0]), tempPassword: password, email: mail });
 });
 
 async function loadTarget(req, res) {
@@ -124,6 +151,7 @@ app.patch('/api/users/:id', auth, need('users.manage'), async (req, res) => {
     'UPDATE users SET name = $1, email = $2, role = $3, status = $4 WHERE id = $5 RETURNING *',
     [name, email, role, status, target.id]
   );
+  await audit(req.user.id, 'user.update', { id: target.id, email, role, status });
   res.json({ user: publicUser(rows[0]) });
 });
 
@@ -135,13 +163,31 @@ app.post('/api/users/:id/reset-password', auth, need('users.manage'), async (req
     'UPDATE users SET password_hash = $1, must_change_password = TRUE WHERE id = $2 RETURNING *',
     [await bcrypt.hash(password, 12), target.id]
   );
-  res.json({ user: publicUser(rows[0]), tempPassword: password });
+  const mail = await mailCredentials(req, (req.body || {}).sendEmail === true, { name: target.name, email: target.email, password, reset: true });
+  await audit(req.user.id, 'user.reset-password', { id: target.id, email: target.email, emailed: mail.sent });
+  res.json({ user: publicUser(rows[0]), tempPassword: password, email: mail });
+});
+
+// Eliminar un usuario. Nunca a uno mismo, ni a alguien de nivel superior, ni al último superadmin activo.
+app.delete('/api/users/:id', auth, need('users.manage'), async (req, res) => {
+  const target = await loadTarget(req, res);
+  if (!target) return;
+  if (target.role === 'superadmin') {
+    const others = await pool.query("SELECT count(*) AS n FROM users WHERE role = 'superadmin' AND status = 'active' AND id <> $1", [target.id]);
+    if (Number(others.rows[0].n) === 0) return res.status(409).json({ error: 'No se puede eliminar al último superadmin activo.' });
+  }
+  await pool.query('DELETE FROM users WHERE id = $1', [target.id]);
+  await audit(req.user.id, 'user.delete', { id: target.id, email: target.email, role: target.role });
+  res.json({ ok: true });
 });
 
 app.use('/api', require('./events-api'));
 app.use('/api', require('./ports-api'));
 app.use('/api', require('./storage-api'));
 app.use('/api', require('./types-api'));
+app.use('/api', require('./incidents-api'));
+app.use('/api', require('./settings-api'));
+app.use('/api', require('./alerts-api'));
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error(err);
@@ -163,6 +209,7 @@ async function main() {
   // Que el firewall refleje los puertos encendidos desde el arranque (si el servidor se reinició, por ejemplo)
   require('./firewall').sync().catch((e) => console.error('Firewall:', e.message));
   scheduleRetention();
+  require('./alerts').start(); // revisa las reglas de alerta por correo
   // HOST=127.0.0.1 en producción: la API solo la ve nginx, no internet
   const listenArgs = process.env.HOST ? [port, process.env.HOST] : [port];
   server.listen(...listenArgs, () => console.log(`API escuchando en http://${process.env.HOST || 'localhost'}:${port}`));

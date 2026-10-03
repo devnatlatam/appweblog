@@ -6,6 +6,7 @@ const { EventEmitter } = require('events');
 const pool = require('./db');
 const { parseWire } = require('./wire');
 const { dayOf, ensurePartition } = require('./partitions');
+const insights = require('./insights');
 
 const MAX_PENDING_TYPES = 200;   // tipos nuevos que pueden esperar aprobación por cliente
 const MAX_QUEUE = 200000;       // tope de mensajes en memoria si la base se atrasa
@@ -33,6 +34,8 @@ class Collector extends EventEmitter {
     this.overflow = 0;
     this.flushing = false;
     this.timer = null;
+    this.autoTimer = null;
+    this.post = Promise.resolve(); // análisis posterior al guardado, siempre en orden de llegada
   }
 
   // Abre los puertos que estaban encendidos y arranca el guardado periódico
@@ -43,7 +46,9 @@ class Collector extends EventEmitter {
     }
     const t = await pool.query('SELECT id, client_id, type_key, status, category FROM log_types');
     t.rows.forEach((r) => this.setType(r.client_id, r.type_key, r));
+    await insights.load();
     this.timer = setInterval(() => this.flush(), FLUSH_MS);
+    this.autoTimer = setInterval(() => insights.autoClose().catch((e) => console.error('Incidentes:', e.message)), 30000);
   }
 
   // La API de aprobación avisa aquí para que la decisión valga de inmediato
@@ -81,6 +86,7 @@ class Collector extends EventEmitter {
 
   async stop() {
     clearInterval(this.timer);
+    clearInterval(this.autoTimer);
     for (const id of [...this.open.keys()]) this.closePort(id);
     await this.flush();
   }
@@ -189,6 +195,44 @@ class Collector extends EventEmitter {
     if (this.queue.length >= FLUSH_SIZE) this.flush();
   }
 
+  // Inserta un lote de eventos y devuelve sus ids, en el mismo orden
+  async writeRows(batch) {
+    for (const day of new Set(batch.map((b) => dayOf(b.ev.ts)))) await ensurePartition(day);
+    const params = [];
+    const values = batch.map((b, i) => {
+      const e = b.ev;
+      params.push(e.ts, e.deviceTs, e.sourceIp, e.host, b.clientId, b.port, e.module, e.severity, e.category,
+        e.summary, JSON.stringify(e.fields), e.message, e.raw, e.typeKey, Boolean(b.pending));
+      const o = i * 15;
+      return `(${Array.from({ length: 15 }, (_, k) => `$${o + k + 1}`).join(',')})`;
+    });
+    const res = await pool.query(
+      `INSERT INTO events (ts, device_ts, source_ip, host, client_id, port, module, severity, category, summary, fields, message, raw, type_key, pending)
+       VALUES ${values.join(',')} RETURNING id`,
+      params
+    );
+    return res.rows.map((r) => r.id);
+  }
+
+  // Transmite a los visores en vivo lo guardado (menos lo que espera aprobación)
+  emitStored(stored) {
+    const shown = stored.filter(({ b }) => !b.pending);
+    if (!shown.length) return;
+    this.emit('events', shown.map(({ b, id }) => ({
+      id, ts: b.ev.ts, source_ip: b.ev.sourceIp, host: b.ev.host, client_id: b.clientId,
+      client_name: b.clientName, port: b.port, module: b.ev.module, severity: b.ev.severity, category: b.ev.category,
+      summary: b.ev.summary, fields: b.ev.fields, message: b.ev.message, raw: b.ev.raw, acknowledged: false,
+      acl_name: b.ev.fields && b.ev.fields.rule ? insights.aclName(b.ev.fields.rule) : null,
+    })));
+  }
+
+  // Eventos que genera el propio sistema (por ejemplo, "cambió la IP de origen del cliente")
+  async storeSynthetic(client, ev) {
+    const item = { ev, clientId: client.clientId, clientName: client.clientName, port: client.port, pending: false };
+    const [id] = await this.writeRows([item]);
+    this.emitStored([{ b: item, id }]);
+  }
+
   // Guarda lo recibido en la base y, ya con su id, lo emite a los visores en vivo
   async flush() {
     if (this.flushing || !this.queue.length) return;
@@ -210,29 +254,16 @@ class Collector extends EventEmitter {
         await pool.query('UPDATE log_types SET event_count = event_count + $1, last_seen = now() WHERE id = $2', [n, id]);
       }
       if (!batch.length) return;
-      for (const day of new Set(batch.map((b) => dayOf(b.ev.ts)))) await ensurePartition(day);
-      const params = [];
-      const values = batch.map((b, i) => {
-        const e = b.ev;
-        params.push(e.ts, e.deviceTs, e.sourceIp, e.host, b.clientId, b.port, e.module, e.severity, e.category,
-          e.summary, JSON.stringify(e.fields), e.message, e.raw, e.typeKey, b.pending);
-        const o = i * 15;
-        return `(${Array.from({ length: 15 }, (_, k) => `$${o + k + 1}`).join(',')})`;
-      });
-      const res = await pool.query(
-        `INSERT INTO events (ts, device_ts, source_ip, host, client_id, port, module, severity, category, summary, fields, message, raw, type_key, pending)
-         VALUES ${values.join(',')} RETURNING id`,
-        params
-      );
+      const ids = await this.writeRows(batch);
       const seen = [...new Set(batch.map((b) => b.clientId))];
       pool.query('UPDATE clients_ports SET last_seen = now() WHERE id = ANY($1::int[])', [seen]).catch(() => {});
 
-      const shown = batch.map((b, i) => ({ b, i })).filter(({ b }) => !b.pending);
-      this.emit('events', shown.map(({ b, i }) => ({
-        id: res.rows[i].id, ts: b.ev.ts, source_ip: b.ev.sourceIp, host: b.ev.host, client_id: b.clientId,
-        client_name: b.clientName, port: b.port, module: b.ev.module, severity: b.ev.severity, category: b.ev.category,
-        summary: b.ev.summary, fields: b.ev.fields, message: b.ev.message, raw: b.ev.raw, acknowledged: false,
-      })));
+      // Desde aquí lo recibido YA está guardado. Si algo falla de ahora en adelante no se reintenta el lote (se duplicaría).
+      const stored = batch.map((b, i) => ({ b, id: ids[i] }));
+      this.emitStored(stored);
+      this.post = this.post
+        .then(() => insights.process(stored, this))
+        .catch((e) => console.error('Análisis de eventos:', e.message));
     } catch (e) {
       console.error('No se pudo guardar un lote de logs, se reintenta:', e.message);
       this.queue.unshift(...original); // devolver al inicio para reintentar

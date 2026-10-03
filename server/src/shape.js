@@ -18,6 +18,7 @@ function shape(row, canRaw) {
     summary: row.summary,
     fields: row.fields,
     acknowledged: row.acknowledged,
+    aclName: row.acl_name || null,
     ...(canRaw ? { message: row.message, raw: row.raw } : {}),
   };
 }

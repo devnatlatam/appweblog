@@ -59,13 +59,14 @@ export const PERMISSION_GROUPS = [
     group: 'Alertas',
     items: [
       { key: 'alerts.view', label: 'Ver reglas de alerta' },
-      { key: 'alerts.manage', label: 'Crear y editar reglas de alerta' },
+      { key: 'alerts.manage', label: 'Crear, editar y apagar reglas de alerta' },
     ],
   },
   {
     group: 'Administración',
     items: [
-      { key: 'users.manage', label: 'Gestionar usuarios' },
+      { key: 'users.manage', label: 'Gestionar usuarios (crear, editar, eliminar, enviar accesos)' },
+      { key: 'settings.manage', label: 'Configurar el correo de salida' },
       { key: 'roles.manage', label: 'Ver roles y permisos' },
     ],
   },
@@ -76,7 +77,7 @@ export const ROLE_PERMISSIONS = {
   admin: [
     'dashboard.view', 'logs.view', 'logs.raw', 'logs.ack', 'logs.export',
     'ports.view', 'ports.toggle', 'ports.manage', 'storage.manage', 'types.review',
-    'alerts.view', 'alerts.manage', 'users.manage',
+    'alerts.view', 'alerts.manage', 'users.manage', 'settings.manage',
   ],
   operador: ['dashboard.view', 'logs.view', 'logs.raw', 'logs.ack', 'logs.export', 'ports.view', 'ports.toggle', 'alerts.view'],
   lector: ['dashboard.view', 'logs.view', 'ports.view'],

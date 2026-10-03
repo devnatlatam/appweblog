@@ -258,3 +258,53 @@ i.seg { width: 10px; height: 10px; border-radius: 3px; }
 .type-card__actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
 .raw--sample { max-height: 96px; overflow: hidden; opacity: 0.85; }
 .samples { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+/* ───────── Incidentes ───────── */
+.incidents { list-style: none; margin: 0; padding: 0; }
+.incident { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.incidents li:last-child { border-bottom: 0; }
+.panel__body .incident { padding-left: 0; padding-right: 0; }
+.incident.is-done { opacity: 0.8; }
+.incident__icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.incident__icon--critical { background: var(--crit-soft); color: var(--crit); }
+.incident__icon--error { background: var(--err-soft); color: var(--err); }
+.incident__icon--warning { background: var(--warn-soft); color: var(--warn); }
+.incident__icon--info { background: var(--info-soft); color: var(--info); }
+.incident__icon--ok { background: var(--ok-soft); color: var(--ok); }
+.incident__body { display: flex; flex-direction: column; min-width: 0; }
+.incident__body strong { font-weight: 600; overflow-wrap: anywhere; }
+.incident__time { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+@media (max-width: 640px) {
+  .incident { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .incident__time { grid-column: 2 / -1; align-items: flex-start; text-align: left; flex-direction: row; gap: 8px; align-items: center; }
+}
+
+/* ───────── Agrupado y detalles de cliente ───────── */
+.filters__sel--wide { flex: 1 1 220px; max-width: 280px; }
+.win-chip { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; background: var(--accent-soft); color: var(--accent-strong); border-radius: 99px; font-size: 0.85rem; font-weight: 550; align-self: flex-start; }
+.badge--count { background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text); font-family: var(--font-mono); }
+.client-head__ips { margin-top: 4px; }
+.tab-count { margin-left: 8px; background: var(--crit); color: #fff; border-radius: 99px; font-size: 0.72rem; font-weight: 600; padding: 1px 7px; }
+
+/* ───────── Correo, alertas y cuenta ───────── */
+.mail-form { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
+.mail-form .form-grid, .mail-form .field, .mail-form .form-error, .mail-form .note { width: 100%; }
+.note--ok { background: var(--ok-soft); }
+.note--ok > svg { color: var(--ok); }
+.textarea { min-height: 64px; padding: 10px 12px; resize: vertical; line-height: 1.45; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+.inline-field { display: flex; gap: 8px; }
+.inline-field .input { flex: 1; }
+.kinds { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.kind { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius-m); cursor: pointer; background: var(--surface); }
+.kind:hover { border-color: var(--text-faint); }
+.kind.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.kind input { margin-top: 3px; accent-color: var(--accent); width: 18px; height: 18px; flex: none; }
+.kind span { display: flex; flex-direction: column; gap: 2px; }
+.kind small { color: var(--text-dim); font-size: 0.82rem; line-height: 1.4; }
+.subform { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-m); }
+.checks-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; }
+@media (max-width: 520px) { .checks-grid { grid-template-columns: minmax(0, 1fr); } }
+.rule__actions { display: flex; align-items: center; gap: 4px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.rule__actions .rule__switch { margin-left: 8px; }
+@media (max-width: 720px) { .rule { flex-direction: column; align-items: stretch; } .rule__actions { justify-content: flex-start; } .rule__actions .rule__switch { margin-left: auto; flex-direction: row; } }

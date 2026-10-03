@@ -55,7 +55,7 @@ const shapePort = (r, extra = {}) => ({
 // Si algo falla, deja todo como estaba.
 async function turnOn(row) {
   await collector.openPort(row); // lanza si el puerto está ocupado o no hay permiso
-  await pool.query('UPDATE clients_ports SET is_active = TRUE WHERE id = $1', [row.id]);
+  await pool.query('UPDATE clients_ports SET is_active = TRUE, activated_at = now() WHERE id = $1', [row.id]);
   try {
     await firewall.sync();
   } catch (e) {
@@ -82,13 +82,18 @@ async function turnOff(row) {
 }
 
 router.get('/ports', guard('ports.view'), async (req, res) => {
-  const [ports, counts] = await Promise.all([
+  const [ports, counts, ips, inc] = await Promise.all([
     pool.query('SELECT * FROM clients_ports ORDER BY port_number, protocol'),
     pool.query("SELECT client_id, count(*) AS n FROM events WHERE ts >= now() - interval '24 hours' AND NOT pending AND client_id IS NOT NULL GROUP BY 1"),
+    pool.query('SELECT client_id, ip, first_seen, last_seen FROM client_ips ORDER BY last_seen DESC'),
+    pool.query("SELECT client_id, count(*) AS n FROM incidents WHERE status = 'open' GROUP BY 1"),
   ]);
   const n24 = Object.fromEntries(counts.rows.map((r) => [r.client_id, Number(r.n)]));
+  const openInc = Object.fromEntries(inc.rows.map((r) => [r.client_id, Number(r.n)]));
+  const ipsBy = {};
+  ips.rows.forEach((r) => { (ipsBy[r.client_id] = ipsBy[r.client_id] || []).push({ ip: r.ip, firstSeen: r.first_seen, lastSeen: r.last_seen }); });
   res.json({
-    ports: ports.rows.map((r) => shapePort(r, { events24h: n24[r.id] || 0 })),
+    ports: ports.rows.map((r) => shapePort(r, { events24h: n24[r.id] || 0, openIncidents: openInc[r.id] || 0, sourceIps: (ipsBy[r.id] || []).slice(0, 6) })),
     firewallManaged: firewall.enabled(), // true = la web abre y cierra los puertos en el firewall
   });
 });

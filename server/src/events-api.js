@@ -3,6 +3,7 @@ const pool = require('./db');
 const { auth, need } = require('./middleware');
 const { PERMS } = require('./permissions');
 const { sevKey, shape } = require('./shape');
+const { incidentShape } = require('./incidents-api');
 
 const router = express.Router();
 const guard = (perm) => [auth, need(perm)];
@@ -21,8 +22,16 @@ function buildFilters(q) {
   const params = [];
   const push = (v) => { params.push(v); return `$${params.length}`; };
 
-  const hours = Math.min(Math.max(parseInt(q.hours, 10) || 24, 1), 24 * 365);
-  where.push(`e.ts >= now() - make_interval(hours => ${push(hours)}::int)`);
+  // Un rango exacto (desde/hasta) reemplaza al "últimas N horas". Sirve para abrir los eventos de un grupo.
+  const since = q.since ? new Date(q.since) : null;
+  const until = q.until ? new Date(q.until) : null;
+  if (since && !Number.isNaN(since.getTime())) {
+    where.push(`e.ts >= ${push(since)}`);
+  } else {
+    const hours = Math.min(Math.max(parseInt(q.hours, 10) || 24, 1), 24 * 365);
+    where.push(`e.ts >= now() - make_interval(hours => ${push(hours)}::int)`);
+  }
+  if (until && !Number.isNaN(until.getTime())) where.push(`e.ts < ${push(until)}`);
   where.push('NOT e.pending'); // los tipos nuevos sin aprobar solo se ven en "Por aprobar"
 
   const sevs = String(q.sev || '').split(',').filter((s) => SEV_COND[s]);
@@ -40,11 +49,57 @@ function buildFilters(q) {
   return { where, params, push };
 }
 
-const COLS = 'e.id, e.ts, e.source_ip, e.host, e.client_id, c.client_name, e.port, e.module, e.severity, e.category, e.summary, e.fields, e.message, e.raw, e.acknowledged';
-const FROM = 'events e LEFT JOIN clients_ports c ON c.id = e.client_id';
+const COLS = 'e.id, e.ts, e.source_ip, e.host, e.client_id, c.client_name, e.port, e.module, e.severity, e.category, e.summary, e.fields, e.message, e.raw, e.acknowledged, a.name AS acl_name';
+// Para los eventos de firewall, "rule" es el número de la ACL; acl_names lo traduce a su nombre
+const FROM = "events e LEFT JOIN clients_ports c ON c.id = e.client_id LEFT JOIN acl_names a ON a.entry_id = e.fields->>'rule'";
+
+const GROUP_SECS = { 60: 60, 300: 300, 900: 900, 3600: 3600 };
+
+// Eventos iguales (mismo cliente, tipo y mensaje) dentro de una misma ventana de tiempo, en una sola fila con su cantidad.
+// Se guardan todos los eventos; esto solo cambia cómo se muestran.
+async function listGrouped(req, res, secs) {
+  const { where, params } = buildFilters(req.query);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 40, 1), 200);
+  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+  const bucket = `to_timestamp(floor(extract(epoch FROM e.ts) / ${secs}) * ${secs})`;
+  const w = where.join(' AND ');
+  const { rows } = await pool.query(
+    `SELECT ${bucket} AS bucket, e.client_id, max(c.client_name) AS client_name, e.module, e.summary, min(e.severity) AS severity,
+            count(*) AS n, max(e.ts) AS last_ts, bool_and(e.acknowledged) AS acknowledged, max(e.category) AS category
+     FROM events e LEFT JOIN clients_ports c ON c.id = e.client_id
+     WHERE ${w}
+     GROUP BY 1, e.client_id, e.module, e.summary
+     ORDER BY 1 DESC, count(*) DESC
+     LIMIT ${limit + 1} OFFSET ${offset}`,
+    params
+  );
+  const out = {
+    grouped: true,
+    seconds: secs,
+    hasMore: rows.length > limit,
+    groups: rows.slice(0, limit).map((r) => ({
+      bucket: r.bucket, until: new Date(new Date(r.bucket).getTime() + secs * 1000).toISOString(), lastTs: r.last_ts,
+      clientId: r.client_id, clientName: r.client_name, module: r.module, summary: r.summary,
+      level: r.severity, severity: sevKey(r.severity), category: r.category, count: Number(r.n), acknowledged: r.acknowledged,
+    })),
+  };
+  if (offset === 0) {
+    const c = await pool.query(
+      `SELECT count(*) AS n FROM (SELECT 1 FROM events e WHERE ${w} GROUP BY ${bucket}, e.client_id, e.module, e.summary LIMIT 10001) t`,
+      params
+    );
+    out.total = Number(c.rows[0].n);
+  }
+  res.json(out);
+}
 
 // ───────── Eventos ─────────
 router.get('/events', guard('logs.view'), async (req, res) => {
+  if (req.query.group !== undefined) {
+    const secs = GROUP_SECS[Number(req.query.group)];
+    if (!secs) return res.status(400).json({ error: 'Elige un agrupado válido: 1 min, 5 min, 15 min o 1 hora.' });
+    return listGrouped(req, res, secs);
+  }
   const { where, params, push } = buildFilters(req.query);
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 40, 1), 200);
   const canRaw = PERMS[req.user.role].includes('logs.raw');
@@ -122,7 +177,7 @@ router.get('/summary', guard('dashboard.view'), async (req, res) => {
   if (cid !== null && !Number.isInteger(cid)) return res.status(400).json({ error: 'Cliente no válido.' });
   const sc = cid !== null ? ' AND client_id = $1' : '';
   const sp = cid !== null ? [cid] : [];
-  const [tot, cat, hourly, attention, pending, ports] = await Promise.all([
+  const [tot, cat, hourly, attention, pending, ports, incOpen, incList] = await Promise.all([
     pool.query(`SELECT ${SEV_CASE} AS sev, count(*) AS n FROM events WHERE ${FRESH}${sc} GROUP BY 1`, sp),
     pool.query(`SELECT category, count(*) AS n FROM events WHERE ${FRESH}${sc} GROUP BY 1 ORDER BY 2 DESC`, sp),
     pool.query(`SELECT date_trunc('hour', ts) AS h, ${SEV_CASE} AS sev, count(*) AS n FROM events WHERE ${FRESH}${sc} GROUP BY 1, 2`, sp),
@@ -140,6 +195,12 @@ router.get('/summary', guard('dashboard.view'), async (req, res) => {
       sp
     ),
     pool.query('SELECT is_active, last_seen FROM clients_ports'),
+    pool.query(`SELECT count(*) AS n FROM incidents WHERE status = 'open'${sc}`, sp),
+    pool.query(
+      `SELECT i.*, c.client_name FROM incidents i JOIN clients_ports c ON c.id = i.client_id
+       WHERE i.status = 'open'${sc} ORDER BY COALESCE(i.severity, 7), i.opened_at DESC LIMIT 6`,
+      sp
+    ),
   ]);
 
   const totals = { critical: 0, error: 0, warning: 0, info: 0 };
@@ -169,6 +230,7 @@ router.get('/summary', guard('dashboard.view'), async (req, res) => {
       level: r.level, severity: sevKey(r.level), count: Number(r.n), firstTs: r.first_ts, lastTs: r.last_ts,
     })),
     pending: Number(pending.rows[0].n),
+    incidents: { open: Number(incOpen.rows[0].n), list: incList.rows.map(incidentShape) },
     // Puertos encendidos y cuántos de ellos recibieron algo en los últimos minutos
     sources: {
       total: active.length,
