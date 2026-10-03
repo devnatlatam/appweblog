@@ -34,7 +34,7 @@ Durante el desarrollo se probó con scripts de prueba que **no se conservaron en
 
 | Pendiente de verificar | Por qué importa |
 |---|---|
-| **Instalación en Debian** | Los pasos de `DESPLIEGUE.md` no se ejecutaron nunca de principio a fin. Pueden tener errores. |
+| **Instalación en Debian** | Los pasos de `DESPLIEGUE.md` no se ejecutaron nunca de principio a fin, incluida la descarga del código con `git` (clave de despliegue, `git pull`) y la reinstalación de los archivos de `deploy/`. Pueden tener errores. |
 | **PostgreSQL 15** | Debian 12 trae la 15; se probó con la 17. Debería funcionar. |
 | **Correo con un proveedor real** | Gmail, Microsoft 365 u otros pueden tener requisitos propios (contraseñas de aplicación, bloqueo del puerto). |
 | **`ufw` real** | Falta confirmar que `ufw` borra una regla creada con comentario usando solo su descripción. Si no, la web avisa "no se pudo cerrar en el firewall". |
@@ -93,3 +93,4 @@ Para que quien llegue después sepa **por qué** es así:
 | El firewall lo toca un programa aparte | No dar permisos de administrador a la web |
 | El firewall se guarda completo | Pedido explícito; el agrupado es solo de visualización |
 | El primer usuario, por terminal | Antes de que exista alguien no hay quién cree usuarios |
+| Código en GitHub; el servidor lo trae con `git pull` | Actualizar y volver atrás es un comando, y se sabe qué versión corre ([Trabajo con git](14-trabajo-con-git.md)) |

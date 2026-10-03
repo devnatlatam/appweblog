@@ -52,7 +52,7 @@ sudo -u postgres pg_restore -d db_syslog --no-owner --role=syslogweb /var/backup
 sudo systemctl restart syslogweb
 ```
 
-Para mudarte a otro servidor: instala siguiendo [DESPLIEGUE.md](../DESPLIEGUE.md) **sin** ejecutar `db:init` con `--email`, restaura la base, copia el `.env`, y cambia en cada equipo Omada la dirección de destino del syslog (los puertos pueden ser los mismos).
+Para mudarte a otro servidor: instala siguiendo [DESPLIEGUE.md](../DESPLIEGUE.md) (el código se baja con `git`), **sin** ejecutar `db:init` con `--email`; restaura la base, copia el `.env` guardado y cambia en cada equipo Omada la dirección de destino del syslog (los puertos pueden ser los mismos).
 
 ## Recuperar el acceso
 
@@ -67,7 +67,7 @@ Genera una contraseña temporal, **reactiva** la cuenta y obliga a cambiarla al 
 
 ## Actualizar
 
-Sigue [DESPLIEGUE.md § Actualizar la aplicación](../DESPLIEGUE.md#14-actualizar-la-aplicación). En resumen: subir el nuevo paquete, `npm ci`, `npm run db:init` (agrega tablas o columnas nuevas, sin tocar datos), reconstruir la web y reiniciar el servicio. El `.env` no se pisa.
+Sigue [DESPLIEGUE.md § Actualizar la aplicación](../DESPLIEGUE.md#14-actualizar-la-aplicación). En resumen: `git pull --ff-only`, `npm ci`, `npm run db:init` (agrega tablas o columnas nuevas, sin tocar datos), reconstruir la web y reiniciar el servicio. El `.env` no está en el repositorio, así que no se pisa. Si cambiaron archivos de `deploy/` (servicios, nginx, firewall), esos hay que reinstalarlos aparte: el paso 14 dice cómo. Para volver a una versión anterior: `git checkout <commit-o-etiqueta>` y repetir esos pasos.
 
 ## Espacio en disco
 

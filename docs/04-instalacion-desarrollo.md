@@ -12,6 +12,17 @@ Cómo levantar Omada Logs en tu equipo para probarlo o programar. Para instalarl
 
 Sistema operativo: desarrollado y probado en **Windows 11**. En Linux debería funcionar igual (el servidor de producción es Debian), con la salvedad de que no se ha probado ahí todavía ([Estado y pendientes](12-estado-y-pendientes.md)).
 
+## 0. Obtener el código
+
+El proyecto está en https://github.com/Softkale/weblog.
+
+```bash
+git clone https://github.com/Softkale/weblog.git
+cd weblog
+```
+
+Si vas a hacer cambios, lee antes [Trabajo con git](14-trabajo-con-git.md): qué se sube, qué no, y cómo pasar un cambio al servidor.
+
 ## 1. Base de datos
 
 Crea una base vacía (por ejemplo `db_syslog`) y un usuario con permiso sobre ella. Con `psql`:
@@ -149,7 +160,7 @@ Todas viven en `server/.env`. Las marcadas con 🌐 también se editan desde la 
 | `SEED_EMAIL`, `SEED_NAME`, `SEED_PASSWORD` | Alternativa a los argumentos de `db:init` | — |
 | `ENV_FILE` | Ruta del `.env` que edita la web (pruebas) | `server/.env` |
 
-El archivo `.env` está en `.gitignore`: nunca se sube a un repositorio.
+El archivo `.env` está en `.gitignore`: **nunca se sube al repositorio** (tiene claves). Lo que sí está versionado es `server/.env.example`, la plantilla sin secretos; si agregas una variable nueva, agrégala ahí también.
 
 ## Problemas comunes
 

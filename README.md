@@ -50,6 +50,8 @@ Los logs **no pasan por archivos de texto**: Node escucha el puerto y guarda en 
 Requisitos: Node.js 20 o superior y PostgreSQL 15 o superior. Guía completa en [instalación para desarrollo](docs/04-instalacion-desarrollo.md).
 
 ```bash
+git clone https://github.com/Softkale/weblog.git && cd weblog
+
 # 1. Base de datos: crea una vacía llamada db_syslog (o la que prefieras)
 # 2. Servidor
 cd server
@@ -84,8 +86,11 @@ Para instalarlo en un servidor Debian: [DESPLIEGUE.md](DESPLIEGUE.md).
 | [Operación y mantenimiento](docs/11-operacion.md) | Sistemas | ¿Cómo lo mantengo, respaldo y recupero? |
 | [Estado y pendientes](docs/12-estado-y-pendientes.md) | Todos | ¿Qué está probado, qué no, y qué falta? |
 | [Glosario](docs/13-glosario.md) | Todos | ¿Qué significa cada término? |
+| [Trabajo con git](docs/14-trabajo-con-git.md) | Programadores | ¿Qué se sube al repositorio? ¿Cómo paso un cambio al servidor? ¿Qué documento actualizo? |
 
 ## Estructura del repositorio
+
+Código en https://github.com/Softkale/weblog (rama `main`).
 
 ```
 server/            API, colector de puertos, intérprete de logs, alertas

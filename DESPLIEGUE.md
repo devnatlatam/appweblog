@@ -30,7 +30,7 @@ Nunca abras al exterior el puerto 4000 ni el 5432.
 sudo apt update
 sudo apt install -y curl ca-certificates
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
-sudo apt install -y nodejs postgresql nginx certbot python3-certbot-nginx ufw
+sudo apt install -y nodejs postgresql nginx certbot python3-certbot-nginx ufw git
 node -v   # debe ser v20 o superior
 ```
 
@@ -55,22 +55,49 @@ CREATE DATABASE db_syslog OWNER syslogweb;
 \q
 ```
 
-## 4. Copiar el proyecto al VPS
+## 4. Descargar el proyecto en el VPS
 
-Desde **tu PC**, en PowerShell, dentro de la carpeta `syslogweb` (se excluye lo que no debe viajar: dependencias, claves y logs de prueba):
+El código está en GitHub: **https://github.com/Softkale/weblog** (rama `main`). Se instala con `git`, así después se actualiza con un solo comando (paso 14) y siempre sabes qué versión corre.
 
-```powershell
-tar --exclude=node_modules --exclude=dist --exclude=.env --exclude=server/logs -czf syslogweb.tgz client server deploy DESPLIEGUE.md
-scp syslogweb.tgz usuario@IP_DEL_VPS:/tmp/
-```
+`/opt/syslogweb` ya existe (es la carpeta personal del usuario del paso 2) y `git clone` exige una carpeta vacía, por eso se inicializa y se trae el código en lugar de clonar. Funciona aunque la carpeta tenga archivos.
 
-En el **VPS**:
+### Si el repositorio es público
 
 ```bash
-sudo mkdir -p /opt/syslogweb
-sudo tar -xzf /tmp/syslogweb.tgz -C /opt/syslogweb
-sudo chown -R syslogweb:syslogweb /opt/syslogweb
+sudo -u syslogweb git -C /opt/syslogweb init -b main
+sudo -u syslogweb git -C /opt/syslogweb remote add origin https://github.com/Softkale/weblog.git
+sudo -u syslogweb git -C /opt/syslogweb pull origin main
 ```
+
+### Si el repositorio es privado: clave de despliegue (solo lectura)
+
+Una *clave de despliegue* le da al servidor permiso para **leer** ese único repositorio, y nada más. Es más seguro que guardar una contraseña o un token personal en el VPS.
+
+```bash
+sudo -u syslogweb mkdir -p -m 700 /opt/syslogweb/.ssh
+sudo -u syslogweb ssh-keygen -t ed25519 -N "" -C "syslogweb-vps" -f /opt/syslogweb/.ssh/id_ed25519
+sudo cat /opt/syslogweb/.ssh/id_ed25519.pub        # copia esa línea completa
+```
+
+En GitHub: abre el repositorio → **Settings → Deploy keys → Add deploy key**, pega la línea y **deja sin marcar** "Allow write access". Luego:
+
+```bash
+sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
+sudo -u syslogweb git -C /opt/syslogweb init -b main
+sudo -u syslogweb git -C /opt/syslogweb remote add origin git@github.com:Softkale/weblog.git
+sudo -u syslogweb git -C /opt/syslogweb pull origin main
+```
+
+> `ssh-keyscan` confía en la primera respuesta de GitHub. Si quieres verificar, compara la huella con las que GitHub publica en su documentación (*GitHub's SSH key fingerprints*).
+
+### Comprobar
+
+```bash
+ls /opt/syslogweb            # debe mostrar: client  deploy  docs  server  README.md ...
+sudo -u syslogweb git -C /opt/syslogweb log -1 --format='%h  %s  (%cd)'
+```
+
+**No edites archivos dentro de `/opt/syslogweb`:** un cambio local en un archivo versionado impide el `git pull` de las actualizaciones. Lo que es propio del servidor (`server/.env`, `server/logs`, `client/dist`, `node_modules`) no está en el repositorio, así que `git` nunca lo toca.
 
 ## 5. Configurar y preparar el servidor
 
@@ -258,16 +285,66 @@ Al **encender**, la web abre primero el puerto en la aplicación y luego en el f
 
 ## 14. Actualizar la aplicación
 
+Antes de actualizar, ten un respaldo reciente de la base ([Operación](docs/11-operacion.md#respaldos)).
+
 ```bash
-# Sube el nuevo syslogweb.tgz como en el paso 4, y luego:
-sudo tar -xzf /tmp/syslogweb.tgz -C /opt/syslogweb
-sudo chown -R syslogweb:syslogweb /opt/syslogweb
+cd /opt/syslogweb
+
+# 1) Ver qué cambios llegan (opcional)
+sudo -u syslogweb git fetch --tags
+sudo -u syslogweb git log --oneline HEAD..origin/main
+
+# 2) Traerlos. --ff-only se niega a mezclar si el servidor tuviera cambios propios
+sudo -u syslogweb git pull --ff-only origin main
+
+# 3) Dependencias y tablas (db:init agrega lo que falte sin tocar datos)
 cd /opt/syslogweb/server && sudo -u syslogweb npm ci --omit=dev && sudo -u syslogweb npm run db:init
+
+# 4) Reconstruir la web
 cd /opt/syslogweb/client && sudo -u syslogweb npm ci && sudo -u syslogweb npm run build
+
+# 5) Reiniciar
 sudo systemctl restart syslogweb
 ```
 
-El archivo `.env` no viaja en el `.tgz`, así que tu configuración se conserva. `db:init` es seguro de repetir: no duplica nada.
+`server/.env` no está en el repositorio, así que tu configuración se conserva. `db:init` es seguro de repetir: no duplica nada.
+
+### Si cambiaron archivos de `deploy/`
+
+Los servicios, nginx y el programa del firewall viven **fuera** de `/opt/syslogweb` (en `/etc` y `/usr/local/sbin`), así que `git pull` no los actualiza. Mira si cambió algo y, si es así, vuelve a instalar solo eso:
+
+```bash
+git -C /opt/syslogweb diff --stat 'HEAD@{1}' HEAD -- deploy/       # ¿qué archivos de deploy cambiaron?
+
+# según cuál haya cambiado:
+sudo cp /opt/syslogweb/deploy/syslogweb.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart syslogweb
+sudo cp /opt/syslogweb/deploy/syslogweb-fw.path /opt/syslogweb/deploy/syslogweb-fw.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart syslogweb-fw.path
+sudo install -o root -g root -m 750 /opt/syslogweb/deploy/syslogweb-fw-sync /usr/local/sbin/syslogweb-fw-sync
+sudo cp /opt/syslogweb/deploy/nginx-syslogweb.conf /etc/nginx/sites-available/syslogweb   # ojo: vuelve a poner tu dominio, y luego: sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Volver atrás
+
+Si una actualización da problemas, vuelve a la versión anterior:
+
+```bash
+sudo -u syslogweb git -C /opt/syslogweb log --oneline -10          # elige el commit (o etiqueta) que funcionaba
+sudo -u syslogweb git -C /opt/syslogweb checkout <commit-o-etiqueta>
+# repite los pasos 3, 4 y 5 de arriba
+```
+
+Para volver a lo más reciente: `git checkout main` y `git pull --ff-only origin main`.
+
+El código vuelve atrás, **la base de datos no**: los cambios de tablas se diseñan para ser aditivos (`IF NOT EXISTS`), así que una versión anterior suele funcionar con las tablas nuevas. Si no, restaura el respaldo.
+
+### Qué versión está corriendo
+
+```bash
+sudo -u syslogweb git -C /opt/syslogweb log -1 --format='%h  %s  (%cd)'
+sudo -u syslogweb git -C /opt/syslogweb describe --tags --always     # etiqueta si la hay, o el commit
+```
+
+Más sobre el flujo de trabajo, ramas y versiones: [Trabajo con git](docs/14-trabajo-con-git.md).
 
 ## 15. Si algo falla
 
