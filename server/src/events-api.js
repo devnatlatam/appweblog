@@ -150,7 +150,13 @@ router.post('/events/ack', guard('logs.ack'), async (req, res) => {
   res.json({ updated: r.rowCount });
 });
 
-const csvCell = (v) => `"${String(v === null || v === undefined ? '' : v).replace(/"/g, '""')}"`;
+// Una celda que empieza con = + - @ se ejecutaría como fórmula al abrir el CSV en Excel. Los logs vienen de equipos
+// externos, así que no son de fiar: se les antepone un apóstrofo para que se lean como texto.
+const csvCell = (v) => {
+  let s = String(v === null || v === undefined ? '' : v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+};
 
 router.get('/events/export', guard('logs.export'), async (req, res) => {
   const { where, params } = buildFilters(req.query);

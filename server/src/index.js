@@ -13,6 +13,9 @@ const { credentialsMail } = require('./mail-templates');
 const { audit } = require('./settings');
 
 const app = express();
+// Detrás de nginx todas las peticiones llegan desde 127.0.0.1; con esto se usa la IP real del visitante (X-Forwarded-For)
+// solo cuando la petición viene de la propia máquina. Sin esto, el límite de intentos fallidos sería compartido por todos.
+app.set('trust proxy', 'loopback');
 app.use(express.json());
 app.use(cors({ origin: ['http://localhost:5173'] }));
 

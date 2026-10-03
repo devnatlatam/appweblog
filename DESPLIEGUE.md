@@ -1,5 +1,7 @@
 # Instalar Syslog Web en el VPS (Debian)
 
+> Parte de la documentación de Omada Logs: ver el [índice en README.md](README.md). Para mantener el servidor después: [Operación y mantenimiento](docs/11-operacion.md). Qué está probado y qué no: [Estado y pendientes](docs/12-estado-y-pendientes.md).
+
 Esta guía instala la web, la API y el colector de puertos en un VPS Debian, y explica cómo pasar de rsyslog a recibir los logs directamente por puerto sin cortar el servicio.
 
 **Qué queda instalado**
@@ -93,12 +95,16 @@ sudo -u syslogweb npm ci --omit=dev
 
 ## 6. Crear las tablas y el primer usuario
 
+Este es el único usuario que se crea desde la terminal: antes de que exista alguien, no hay quién pueda crear usuarios en la web. Indica el correo y el nombre del primer administrador:
+
 ```bash
 cd /opt/syslogweb/server
-sudo -u syslogweb npm run db:init
+sudo -u syslogweb npm run db:init -- --email tu@correo.com --name "Tu Nombre"
 ```
 
-Al final imprime el correo y una **contraseña temporal, una sola vez**. Guárdala: el sistema te pedirá cambiarla en el primer ingreso.
+Al final imprime la **contraseña temporal, una sola vez**. Guárdala: el sistema te pedirá cambiarla en el primer ingreso. Desde ahí, **todos los demás usuarios se crean desde la web** (Administración → Usuarios), y se les puede enviar el acceso por correo.
+
+Si repites el comando más adelante, no pasa nada: solo crea un usuario cuando no existe ninguno, así que nunca vuelve a crear una cuenta que hayas eliminado.
 
 Si aquí aparece un error de base de datos, revísalo antes de seguir. Es el primer lugar donde se vería una diferencia entre PostgreSQL 15 y la versión con la que se probó.
 
@@ -271,6 +277,8 @@ El archivo `.env` no viaja en el `.tgz`, así que tu configuración se conserva.
 | "Sin permiso para abrir el puerto" | Puerto menor a 1024 fuera del servicio. Verifica que el servicio se inició con systemd (tiene la capacidad) y no a mano. |
 | El puerto está encendido pero no llega nada | `sudo ufw status`, el firewall del proveedor, y `sudo tcpdump -n -i any port PUERTO`: si ahí ves paquetes, el problema es la app; si no, es la red o el firewall. |
 | La web carga pero "En vivo" dice Reconectando | nginx no pasa el WebSocket: revisa el bloque `location /ws` y `sudo nginx -t`. |
+| Nadie puede entrar (olvidaron la contraseña del único administrador) | `sudo -u syslogweb npm run user:reset -- --email tu@correo.com` en `/opt/syslogweb/server` (ver [Operación](docs/11-operacion.md#recuperar-el-acceso)). |
+| `db:init` dice “no hay ningún usuario todavía” | Es una base nueva: agrega `-- --email tu@correo.com --name "Tu Nombre"` al comando (paso 6). |
 | `db:init` falla con autenticación | `DB_USER` y `DB_PASSWORD` en `.env`, y que el rol del paso 3 exista. |
 | La web dice "el firewall no respondió" | El servicio no está activo: `systemctl status syslogweb-fw.path syslogweb-fw`. Revisa también que `/var/lib/syslogweb` pertenezca a `syslogweb`. |
 | La web dice "el puerto está protegido" | Intentaste usar un puerto de la lista protegida (22, 80, 443, 4000, 5432...). Elige otro. |
