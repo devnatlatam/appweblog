@@ -117,7 +117,3 @@ deploy/            install.sh, update.sh y archivos del servidor: systemd, nginx
 docs/              esta documentación
 DESPLIEGUE.md      instalación manual paso a paso en Debian
 ```
-
-## Estado
-
-Funciona de punta a punta en desarrollo (Windows, PostgreSQL 17). Hay cosas que **todavía no se han probado en un entorno real**: el envío por un servidor SMTP real, `ufw` real y la instalación en Debian. El detalle honesto está en [Estado y pendientes](docs/12-estado-y-pendientes.md).
