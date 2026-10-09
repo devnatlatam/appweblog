@@ -66,17 +66,30 @@ npm install
 npm run dev                 # http://localhost:5173
 ```
 
-Para instalarlo en un servidor Debian: [DESPLIEGUE.md](DESPLIEGUE.md).
+## Instalar en un servidor (un solo comando)
+
+```bash
+# En un Debian 12 limpio, con tu dominio apuntando al servidor
+curl -fsSL https://raw.githubusercontent.com/Softkale/weblog/main/deploy/install.sh -o install.sh
+sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
+
+# Para actualizar después (usa git)
+sudo syslogweb-update
+```
+
+Todo el detalle, opciones y cómo volver atrás: [Instalación y actualización](docs/15-instalacion-y-actualizacion.md). Si prefieres hacerlo a mano paso a paso: [DESPLIEGUE.md](DESPLIEGUE.md).
 
 ## Documentación
 
 | Documento | Para quién | Responde a… |
 |---|---|---|
+| [¿Qué es y para qué sirve?](docs/00-que-es-y-para-que-sirve.md) | **Personas no técnicas** | ¿Qué hace esto, en palabras simples? |
 | [Guía de usuario](docs/01-guia-de-usuario.md) | Todos | ¿Cómo uso cada pantalla? ¿Qué significa lo que veo? |
 | [Guía del administrador](docs/02-guia-del-administrador.md) | Administradores | ¿Cómo creo clientes, alertas, usuarios? ¿Cómo configuro el correo? |
 | [Conectar equipos Omada](docs/03-conectar-equipos-omada.md) | Quien configura la red | ¿Cómo hago que un router o controlador envíe sus logs? |
 | [Instalación para desarrollo](docs/04-instalacion-desarrollo.md) | Programadores | ¿Cómo lo levanto en mi equipo? |
-| [Despliegue en Debian](DESPLIEGUE.md) | Sistemas | ¿Cómo lo instalo en el servidor? |
+| [Instalación y actualización](docs/15-instalacion-y-actualizacion.md) | Sistemas | ¿Cómo lo instalo con un comando y lo actualizo con git? |
+| [Despliegue manual en Debian](DESPLIEGUE.md) | Sistemas | ¿Qué hace exactamente el instalador, paso a paso? |
 | [Arquitectura](docs/05-arquitectura.md) | Programadores | ¿Cómo está construido y por qué? |
 | [Modelo de datos](docs/06-modelo-de-datos.md) | Programadores | ¿Qué tablas hay y para qué? |
 | [Referencia de la API](docs/07-referencia-api.md) | Programadores | ¿Qué endpoints hay? ¿Cómo funciona el WebSocket? |
@@ -100,9 +113,9 @@ client/            la web (React)
   src/pages/       una pantalla por archivo
   src/components/  piezas compartidas
   src/data/        catálogos (explicaciones de logs, roles, severidades)
-deploy/            archivos para el servidor: servicios systemd, nginx, firewall
+deploy/            install.sh, update.sh y archivos del servidor: systemd, nginx, firewall
 docs/              esta documentación
-DESPLIEGUE.md      instalación paso a paso en Debian
+DESPLIEGUE.md      instalación manual paso a paso en Debian
 ```
 
 ## Estado

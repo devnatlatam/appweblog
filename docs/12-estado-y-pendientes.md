@@ -34,7 +34,7 @@ Durante el desarrollo se probó con scripts de prueba que **no se conservaron en
 
 | Pendiente de verificar | Por qué importa |
 |---|---|
-| **Instalación en Debian** | Los pasos de `DESPLIEGUE.md` no se ejecutaron nunca de principio a fin, incluida la descarga del código con `git` (clave de despliegue, `git pull`) y la reinstalación de los archivos de `deploy/`. Pueden tener errores. |
+| **Instalación en Debian** | `deploy/install.sh` y `deploy/update.sh` (solo revisados en sintaxis) y los pasos de `DESPLIEGUE.md` no se ejecutaron nunca de principio a fin, incluida la descarga del código con `git` (clave de despliegue, `git pull`) y la reinstalación de los archivos de `deploy/`. Pueden tener errores. |
 | **PostgreSQL 15** | Debian 12 trae la 15; se probó con la 17. Debería funcionar. |
 | **Correo con un proveedor real** | Gmail, Microsoft 365 u otros pueden tener requisitos propios (contraseñas de aplicación, bloqueo del puerto). |
 | **`ufw` real** | Falta confirmar que `ufw` borra una regla creada con comentario usando solo su descripción. Si no, la web avisa "no se pudo cerrar en el firewall". |

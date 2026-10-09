@@ -38,7 +38,7 @@ main  ──●──●──────────●───────�
 3. Haz commits pequeños con mensajes que digan **qué** y **por qué** (ver abajo).
 4. Antes de integrar, comprueba que la web compila (`cd client && npm run build`) y prueba a mano lo que tocaste. Todavía no hay pruebas automáticas ([Estado y pendientes](12-estado-y-pendientes.md)).
 5. Integra a `main` (idealmente con un *pull request* en GitHub para que otra persona lo revise) y súbelo: `git push origin main`.
-6. Despliega: [paso 14 de DESPLIEGUE.md](../DESPLIEGUE.md#14-actualizar-la-aplicación).
+6. Despliega en el servidor con `sudo syslogweb-update` ([detalle](15-instalacion-y-actualizacion.md#3-actualizar)).
 
 ### Mensajes de commit
 
@@ -83,7 +83,7 @@ cd weblog
 | Una variable de `.env` | `server/.env.example` y [Instalación para desarrollo](04-instalacion-desarrollo.md#variables-de-entorno) |
 | Reglas de alerta o correo | [Alertas y correo](09-alertas-y-correo.md) y [Guía del administrador](02-guia-del-administrador.md) |
 | Una pantalla | [Guía de usuario](01-guia-de-usuario.md) o [del administrador](02-guia-del-administrador.md) |
-| Cómo se instala (`deploy/`) | [DESPLIEGUE.md](../DESPLIEGUE.md) |
+| Cómo se instala (`deploy/`) | [DESPLIEGUE.md](../DESPLIEGUE.md), [Instalación y actualización](15-instalacion-y-actualizacion.md) y los scripts `install.sh` / `update.sh` (deben hacer lo mismo que la guía manual) |
 | El diseño general | [Arquitectura](05-arquitectura.md) |
 | Algo que ahora está probado o ya no es un pendiente | [Estado y pendientes](12-estado-y-pendientes.md) |
 

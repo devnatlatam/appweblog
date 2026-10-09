@@ -1,5 +1,7 @@
 # Instalar Syslog Web en el VPS (Debian)
 
+> **¿Solo quieres instalarlo?** No necesitas esta guía: un único script hace todo lo de abajo. Mira [Instalación y actualización](docs/15-instalacion-y-actualizacion.md). Esta página es la **versión manual**: sirve para entender qué hace `deploy/install.sh` en cada paso, o para instalar sin el script. Si cambias un paso aquí, cambia también el script (y al revés).
+
 > Parte de la documentación de Omada Logs: ver el [índice en README.md](README.md). Para mantener el servidor después: [Operación y mantenimiento](docs/11-operacion.md). Qué está probado y qué no: [Estado y pendientes](docs/12-estado-y-pendientes.md).
 
 Esta guía instala la web, la API y el colector de puertos en un VPS Debian, y explica cómo pasar de rsyslog a recibir los logs directamente por puerto sin cortar el servicio.
@@ -54,6 +56,17 @@ CREATE ROLE syslogweb LOGIN PASSWORD 'pon-una-clave-larga-aqui';
 CREATE DATABASE db_syslog OWNER syslogweb;
 \q
 ```
+
+Comprueba que el usuario puede conectarse por red local, tal como lo hará la aplicación (te pedirá la clave; debe responder `1`):
+
+```bash
+sudo systemctl enable --now postgresql
+psql -h localhost -U syslogweb -d db_syslog -tAc 'SELECT 1'
+```
+
+Si falla por autenticación, revisa `/etc/postgresql/*/main/pg_hba.conf`: la línea de `127.0.0.1/32` debe usar `scram-sha-256` (o `md5`). Las tablas las crea el paso 6; aquí solo se prepara el usuario y la base.
+
+> `deploy/install.sh` hace este paso solo: espera a que PostgreSQL esté listo, crea el usuario con clave aleatoria, crea la base, la deja con la misma clave que el `.env` y prueba la conexión.
 
 ## 4. Descargar el proyecto en el VPS
 
