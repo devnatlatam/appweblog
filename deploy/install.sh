@@ -7,7 +7,7 @@
 # Detalle de cada paso y de las opciones: docs/15-instalacion-y-actualizacion.md
 set -euo pipefail
 
-REPO="${REPO:-https://github.com/Softkale/weblog.git}"
+REPO="${REPO:-https://github.com/devnatlatam/weblog.git}"
 BRANCH="${BRANCH:-main}"
 APP_USER=syslogweb
 APP_DIR=/opt/syslogweb

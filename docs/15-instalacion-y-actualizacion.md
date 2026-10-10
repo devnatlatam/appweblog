@@ -11,14 +11,14 @@ Todo el ciclo de vida del servidor, con **un comando para instalar** y **un coma
 | Un servidor | Debian 12 (o Ubuntu 22.04+), con acceso `sudo` y salida a internet. |
 | Un dominio *(recomendado)* | Algo como `logs.tu-dominio.com`, ya apuntando a la IP del servidor. Sin él, funciona por IP pero sin HTTPS. |
 | Un correo | Será el del primer administrador (y el que usa Let's Encrypt para avisar de vencimientos). |
-| Acceso al repositorio | https://github.com/Softkale/weblog. Si es privado, el instalador crea una clave de solo lectura y te la muestra para registrarla en GitHub. |
+| Acceso al repositorio | https://github.com/devnatlatam/weblog. Si es privado, el instalador crea una clave de solo lectura y te la muestra para registrarla en GitHub. |
 
 ## 1. Instalar (un solo comando)
 
 Conéctate al servidor por SSH y ejecuta:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Softkale/weblog/main/deploy/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh
 sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
 ```
 

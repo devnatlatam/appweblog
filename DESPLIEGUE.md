@@ -70,7 +70,7 @@ Si falla por autenticación, revisa `/etc/postgresql/*/main/pg_hba.conf`: la lí
 
 ## 4. Descargar el proyecto en el VPS
 
-El código está en GitHub: **https://github.com/Softkale/weblog** (rama `main`). Se instala con `git`, así después se actualiza con un solo comando (paso 14) y siempre sabes qué versión corre.
+El código está en GitHub: **https://github.com/devnatlatam/weblog** (rama `main`). Se instala con `git`, así después se actualiza con un solo comando (paso 14) y siempre sabes qué versión corre.
 
 `/opt/syslogweb` ya existe (es la carpeta personal del usuario del paso 2) y `git clone` exige una carpeta vacía, por eso se inicializa y se trae el código en lugar de clonar. Funciona aunque la carpeta tenga archivos.
 
@@ -78,7 +78,7 @@ El código está en GitHub: **https://github.com/Softkale/weblog** (rama `main`)
 
 ```bash
 sudo -u syslogweb git -C /opt/syslogweb init -b main
-sudo -u syslogweb git -C /opt/syslogweb remote add origin https://github.com/Softkale/weblog.git
+sudo -u syslogweb git -C /opt/syslogweb remote add origin https://github.com/devnatlatam/weblog.git
 sudo -u syslogweb git -C /opt/syslogweb pull origin main
 ```
 
@@ -97,7 +97,7 @@ En GitHub: abre el repositorio → **Settings → Deploy keys → Add deploy key
 ```bash
 sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
 sudo -u syslogweb git -C /opt/syslogweb init -b main
-sudo -u syslogweb git -C /opt/syslogweb remote add origin git@github.com:Softkale/weblog.git
+sudo -u syslogweb git -C /opt/syslogweb remote add origin git@github.com:devnatlatam/weblog.git
 sudo -u syslogweb git -C /opt/syslogweb pull origin main
 ```
 

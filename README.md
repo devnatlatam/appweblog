@@ -50,7 +50,7 @@ Los logs **no pasan por archivos de texto**: Node escucha el puerto y guarda en 
 Requisitos: Node.js 20 o superior y PostgreSQL 15 o superior. Guía completa en [instalación para desarrollo](docs/04-instalacion-desarrollo.md).
 
 ```bash
-git clone https://github.com/Softkale/weblog.git && cd weblog
+git clone https://github.com/devnatlatam/weblog.git && cd weblog
 
 # 1. Base de datos: crea una vacía llamada db_syslog (o la que prefieras)
 # 2. Servidor
@@ -70,7 +70,7 @@ npm run dev                 # http://localhost:5173
 
 ```bash
 # En un Debian 12 limpio, con tu dominio apuntando al servidor
-curl -fsSL https://raw.githubusercontent.com/Softkale/weblog/main/deploy/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh
 sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
 
 # Para actualizar después (usa git)
@@ -103,7 +103,7 @@ Todo el detalle, opciones y cómo volver atrás: [Instalación y actualización]
 
 ## Estructura del repositorio
 
-Código en https://github.com/Softkale/weblog (rama `main`).
+Código en https://github.com/devnatlatam/weblog (rama `main`).
 
 ```
 server/            API, colector de puertos, intérprete de logs, alertas
