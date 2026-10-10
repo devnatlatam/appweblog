@@ -77,7 +77,7 @@ DROP TABLE IF EXISTS log_rules;
 CREATE TABLE IF NOT EXISTS incidents (
   id              BIGSERIAL PRIMARY KEY,
   client_id       INTEGER NOT NULL REFERENCES clients_ports(id) ON DELETE CASCADE,
-  kind            TEXT NOT NULL,        -- wan_offline, ipsec_down, ip_conflict, rogue_dhcp
+  kind            TEXT NOT NULL,        -- wan_offline, ipsec_down, ip_conflict, rogue_dhcp, arp_conflict
   key             TEXT NOT NULL,        -- qué está afectado: WAN3, 10.10.0.33, 172.17.17.54...
   title           TEXT NOT NULL,
   severity        SMALLINT,

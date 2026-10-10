@@ -11,7 +11,7 @@ const MIN_INTERVAL = { spike: 5 * 60000, firewall_blocks: 60000 }; // las consul
 const RETRY_FAILED_MS = 5 * 60000;
 const MAX_MAILS_PER_RULE_TICK = 10;
 
-const KIND_LABEL = { wan_offline: 'Internet caído', ipsec_down: 'Túnel VPN caído', ip_conflict: 'Conflicto de IP', rogue_dhcp: 'Servidor DHCP intruso' };
+const KIND_LABEL = { wan_offline: 'Internet caído', ipsec_down: 'Túnel VPN caído', ip_conflict: 'Conflicto de IP', rogue_dhcp: 'Servidor DHCP intruso', arp_conflict: 'Conflicto ARP' };
 
 const fmtTime = (d) => new Date(d).toLocaleString('es-PE', { timeZone: TZ, day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
 function human(secs) {

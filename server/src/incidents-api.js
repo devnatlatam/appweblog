@@ -60,6 +60,7 @@ const STORY = {
   ipsec_down: { modules: ['ipsec', 'alerta_controlador'], field: 'wan', like: ['%caído%', '%establecido%'] },
   ip_conflict: { modules: ['ip_conflict'], field: 'ip', like: ['%'] },
   rogue_dhcp: { modules: ['dhcp_server', 'alerta_controlador'], field: 'ip', like: ['Servidor DHCP intruso%'] },
+  arp_conflict: { modules: ['firewall'], field: 'ip', like: ['Conflicto ARP%'] },
 };
 
 // Detalle de un incidente: lo que lo abrió y los eventos que lo componen

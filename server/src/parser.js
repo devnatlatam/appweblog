@@ -20,7 +20,8 @@ const wanName = (s) => { const d = (String(s).match(/\d+/) || [''])[0]; return d
 const INCIDENT_SEVERITY = { wan_offline: 3, ipsec_down: 3, rogue_dhcp: 4 };
 
 function dhcpAllocated(msg) {
-  const m = msg.match(new RegExp(`allocated IP address (\\S+) for the \\[client:(${MAC})\\]`));
+  // El router a veces deja un espacio antes del corchete: "[client:70:4c:a5:38:a7:b2 ]"
+  const m = msg.match(new RegExp(`allocated IP address (\\S+) for the \\[client:(${MAC})\\s*\\]`));
   if (!m) return null;
   return {
     category: 'Red',
@@ -145,15 +146,71 @@ const MODULES = {
   online_dection: onlineDetection, // así se escribe el módulo en Omada
 };
 
+// DDNS No-IP: "WAN5: No-IP DDNS logining succeeded, username is X." / "WAN5: No-IP DDNS registeration/update succeeded. IP and host  are bound."
+MODULES.noip = (msg) => {
+  const login = msg.match(/(\w+): No-IP DDNS logining succeeded, username is (\S+?)\.?\s*$/i);
+  if (login) {
+    const wan = wanName(login[1]);
+    return { category: 'Conectividad', summary: `${wan}: sesión correcta en el servicio DDNS No-IP (usuario ${login[2]})`, fields: { wan, usuario: login[2] } };
+  }
+  const upd = msg.match(/(\w+): No-IP DDNS registeration\/update succeeded\.\s*([\d.]+) and (\S+)\s+are bound/i);
+  if (upd) {
+    const wan = wanName(upd[1]);
+    return { category: 'Conectividad', summary: `${wan}: DDNS actualizado, ${upd[3]} apunta a ${upd[2]}`, fields: { wan, ip: upd[2], dominio: upd[3] } };
+  }
+  return null;
+};
+
+// VPN de acceso remoto (SSL VPN): inicio y cierre de sesión de usuarios, y mensajes de la conexión
+MODULES.sslvpn = (msg) => {
+  const s = msg.match(/SSL VPN client (login|logout), account=([^,\s]+), loginIP=([\d.]+), virtualIP=([\d.]+)/i);
+  if (s) {
+    const login = s[1].toLowerCase() === 'login';
+    return {
+      category: 'VPN',
+      summary: `${login ? 'Inició' : 'Cerró'} sesión en la VPN ${s[2]} desde ${s[3]} (IP virtual ${s[4]})`,
+      fields: { usuario: s[2], 'ip-origen': s[3], 'ip-virtual': s[4] },
+    };
+  }
+  const t = msg.match(/SSL VPN TLS: Initial packet from \[AF_INET\]([\d.]+):(\d+)/i);
+  if (t) return { category: 'VPN', summary: `Intento de conexión a la VPN desde ${t[1]}:${t[2]}`, fields: { 'ip-origen': t[1], puerto: Number(t[2]) } };
+  if (/SSL VPN peer is inactive/i.test(msg)) return { category: 'VPN', summary: 'La VPN cerró una conexión por inactividad', fields: {} };
+  return null;
+};
+
 const PORTS = {
   21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS', 67: 'DHCP', 80: 'HTTP', 88: 'Kerberos', 110: 'POP3', 123: 'NTP',
   135: 'RPC', 143: 'IMAP', 161: 'SNMP', 389: 'LDAP', 443: 'HTTPS', 445: 'SMB', 514: 'Syslog', 993: 'IMAPS', 1433: 'SQL Server',
   3268: 'Catálogo global AD', 3306: 'MySQL', 3389: 'Escritorio remoto', 5432: 'PostgreSQL', 5060: 'SIP', 8080: 'HTTP alterno',
 };
 
+// ARP: el router avisa cuando un equipo usa una IP que tiene reservada otra MAC, y cuando sospecha de un ataque.
+// Las MAC vienen con guiones ("00-17-61-12-F8-A6"); el "55" pegado al inicio del mensaje no es parte de ellas.
+const ARP_MAC = '[0-9a-fA-F]{2}(?:-[0-9a-fA-F]{2}){5}';
+const dashMac = (s) => s.replace(/-/g, ':').toLowerCase();
+
+function arpConflict(msg) {
+  const m = msg.match(new RegExp(
+    `detected ARP conflict and dropped (\\d+) packets?\\.\\s*\\(Packet=([\\d.]+):(${ARP_MAC}),\\s*Bind-Rule=([\\d.]+):(${ARP_MAC})\\)`, 'i'));
+  if (!m) return null;
+  const n = Number(m[1]);
+  return {
+    category: 'Seguridad',
+    summary: `Conflicto ARP en ${m[2]}: el equipo ${dashMac(m[3])} usa una IP reservada para ${dashMac(m[5])} (${n} ${n === 1 ? 'paquete descartado' : 'paquetes descartados'})`,
+    fields: { ip: m[2], mac: dashMac(m[3]), 'mac-reservada': dashMac(m[5]), paquetes: n },
+    // Se repite mientras dura. Se cierra solo si pasan 15 minutos sin repetirse.
+    incident: { kind: 'arp_conflict', key: m[2], action: 'open', autoCloseSecs: 15 * 60 },
+  };
+}
+
+function arpAttack(msg) {
+  if (!/Detected suspected ARP attack/i.test(msg)) return null;
+  return { category: 'Seguridad', summary: 'El router detectó paquetes ARP sospechosos de un ataque', fields: {} };
+}
+
 // Mensajes de ACL: "[ACL]GATEWAY=..,DESC=..,ACTION=Allow,SRC_MAC=..,DST_MAC=..,SRC=..,DST=..,PROTO=UDP,Sport=..,Dport=.."
 MODULES.firewall = (msg) => {
-  if (!msg.startsWith('[ACL]')) return null;
+  if (!msg.startsWith('[ACL]')) return arpConflict(msg) || arpAttack(msg);
   const kv = {};
   msg.slice(5).split(',').forEach((p) => {
     const i = p.indexOf('=');

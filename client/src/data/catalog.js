@@ -75,11 +75,42 @@ export const MODULE_INFO = {
   },
   firewall: {
     label: 'Firewall',
-    meaning: (e) => (/bloqueado/i.test(e.summary)
-      ? 'El firewall bloqueó este tráfico según una regla de acceso (ACL).'
-      : 'El firewall dejó pasar este tráfico según una regla de acceso (ACL). Es actividad normal de la red.'),
-    action: (e) => (/bloqueado/i.test(e.summary)
-      ? 'Si se repite desde el mismo origen, identifica el equipo y revisa por qué intenta ese acceso.'
+    meaning: (e) => {
+      if (/conflicto arp/i.test(e.summary)) {
+        return 'Un equipo usa una IP que el router tiene reservada para otra MAC, y el router descartó sus paquetes. Puede ser un equipo con IP fija mal puesta, o alguien que intenta hacerse pasar por otro equipo.';
+      }
+      if (/arp sospechosos/i.test(e.summary)) {
+        return 'El router vio tráfico ARP anormal (muchos paquetes o respuestas que no corresponden). Puede ser un equipo mal configurado o un intento de suplantar a otro en la red.';
+      }
+      return /bloqueado/i.test(e.summary)
+        ? 'El firewall bloqueó este tráfico según una regla de acceso (ACL).'
+        : 'El firewall dejó pasar este tráfico según una regla de acceso (ACL). Es actividad normal de la red.';
+    },
+    action: (e) => {
+      if (/conflicto arp/i.test(e.summary)) {
+        return 'Ubica el equipo por su MAC (la de «MAC del equipo»). Si es tuyo, cámbiale la IP fija o reserva esa IP a su MAC en el router. Si no lo reconoces, desconéctalo de la red.';
+      }
+      if (/arp sospechosos/i.test(e.summary)) return 'Si se repite seguido, revisa en el router la lista de equipos conectados por si hay alguno desconocido.';
+      return /bloqueado/i.test(e.summary)
+        ? 'Si se repite desde el mismo origen, identifica el equipo y revisa por qué intenta ese acceso.'
+        : null;
+    },
+  },
+  noip: {
+    label: 'DDNS (No-IP)',
+    meaning: () => 'El router mantiene al día su nombre en internet (No-IP) para poder encontrarlo aunque cambie la IP pública. Es un aviso normal y se repite cada pocos minutos.',
+    action: () => null,
+  },
+  sslvpn: {
+    label: 'VPN de acceso remoto',
+    meaning: (e) => {
+      if (/inició sesión/i.test(e.summary)) return 'Un usuario se conectó a la red desde afuera por la VPN y recibió una IP virtual.';
+      if (/cerró sesión/i.test(e.summary)) return 'Un usuario se desconectó de la VPN.';
+      if (/intento de conexión/i.test(e.summary)) return 'Alguien empezó a conectarse a la VPN desde esa IP. Aparece justo antes de un inicio de sesión.';
+      return 'La VPN cerró una conexión que dejó de responder. Es normal cuando el usuario pierde internet o apaga su equipo.';
+    },
+    action: (e) => (/inició sesión/i.test(e.summary)
+      ? 'Si no reconoces al usuario o la IP desde la que entró, cambia su contraseña y revisa quién tiene esa cuenta.'
       : null),
   },
 };
@@ -87,7 +118,7 @@ export const MODULE_INFO = {
 export const moduleLabel = (m) => (MODULE_INFO[m] ? MODULE_INFO[m].label : m);
 
 // Tipos que se pueden elegir en el filtro de Registros
-export const FILTER_MODULES = ['dhcp_server', 'ip_conflict', 'firewall', 'ipsec', 'online_dection', 'alerta_controlador', 'cliente_ip', 'omada_audit'];
+export const FILTER_MODULES = ['dhcp_server', 'ip_conflict', 'firewall', 'ipsec', 'sslvpn', 'noip', 'online_dection', 'alerta_controlador', 'cliente_ip', 'omada_audit'];
 
 export function interpret(e) {
   const info = MODULE_INFO[e.module];
@@ -102,6 +133,8 @@ export const FIELD_LABELS = {
   site: 'Sitio', operation: 'Operación original', network: 'Red',
   wan: 'Salida (WAN)', phase: 'Fase', local: 'IP local', remote: 'IP del otro extremo', intervalo: 'Intervalo (s)',
   principal: 'Túnel principal', secundario: 'Túnel de respaldo', equipo: 'Equipo', 'mac-equipo': 'MAC del equipo',
+  'mac-reservada': 'MAC a la que está reservada la IP', paquetes: 'Paquetes descartados',
+  usuario: 'Usuario', 'ip-origen': 'IP de origen', 'ip-virtual': 'IP virtual', puerto: 'Puerto de origen', dominio: 'Dominio',
   nueva: 'IP nueva', anterior: 'IP anterior', 'anterior-visto': 'Anterior vista por última vez',
 };
 
@@ -110,6 +143,7 @@ export const INCIDENT_KINDS = {
   ipsec_down: 'Túnel VPN caído',
   ip_conflict: 'Conflicto de IP',
   rogue_dhcp: 'Servidor DHCP intruso',
+  arp_conflict: 'Conflicto ARP',
 };
 
 // "ER7206:" llega con los dos puntos de la etiqueta pegados; el nombre del equipo es solo "ER7206"
@@ -135,6 +169,10 @@ export const INCIDENT_INFO = {
   ip_conflict: {
     meaning: (i) => `Dos equipos están usando la misma dirección IP (${i.key}). Ambos pueden perder la conexión de forma intermitente. El aviso se repite mientras el conflicto sigue.`,
     action: (i, sample) => MODULE_INFO.ip_conflict.action({ summary: '', fields: (sample && sample.fields) || {} }),
+  },
+  arp_conflict: {
+    meaning: (i) => `Un equipo está usando la IP ${i.key}, que el router tiene reservada para otra MAC, y el router descarta sus paquetes. El aviso se repite mientras el conflicto sigue.`,
+    action: (i, sample) => MODULE_INFO.firewall.action({ summary: 'Conflicto ARP', fields: (sample && sample.fields) || {} }),
   },
   rogue_dhcp: {
     meaning: (i) => `Un equipo (${i.key}) está respondiendo como servidor DHCP sin que debiera. Los equipos pueden recibir de él una IP o una puerta de enlace equivocadas y quedar sin conexión.`,

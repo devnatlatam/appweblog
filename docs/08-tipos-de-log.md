@@ -46,6 +46,17 @@ Resumen: `Permitido UDP de 172.17.17.52 a 10.10.0.2:53 (DNS)`. Es `Bloqueado` si
 
 Campos: `action`, `src`, `dst`, `proto`, `sport`, `dport`, `srcMac`, `dstMac`, `rule` (= `DESC`, el número de la ACL), `gateway`. El `rule` se traduce al **nombre de la ACL** con `acl_names`. La MAC de origen alimenta el inventario de equipos.
 
+**Avisos ARP** (también del módulo `firewall`, categoría *Seguridad*):
+
+| Mensaje | Resumen |
+|---|---|
+| `[OMADA]00-17-61-12-F8-A655 detected ARP conflict and dropped 4 packets. (Packet=172.16.111.27:00-17-61-12-F8-A6, Bind-Rule=172.16.111.27:00-17-61-10-06-ED)` | Conflicto ARP en 172.16.111.27: el equipo 00:17:61:12:f8:a6 usa una IP reservada para 00:17:61:10:06:ed (4 paquetes descartados) |
+| `Detected suspected ARP attack packets. Be careful!` | El router detectó paquetes ARP sospechosos de un ataque |
+
+Campos del conflicto: `ip`, `mac` (la del equipo que usa la IP), `mac-reservada` (a la que está reservada) y `paquetes`. El `55` pegado al principio no es parte de la MAC. No alimentan el inventario de equipos (ese solo lee `srcMac` del firewall).
+
+El conflicto abre el incidente `arp_conflict`, clave = IP, y se cierra solo a los **15 min** sin repetirse. La sospecha de ataque no abre incidente.
+
 Puertos con nombre: 21 FTP, 22 SSH, 23 Telnet, 25 SMTP, 53 DNS, 67 DHCP, 80 HTTP, 88 Kerberos, 110 POP3, 123 NTP, 135 RPC, 143 IMAP, 161 SNMP, 389 LDAP, 443 HTTPS, 445 SMB, 514 Syslog, 993 IMAPS, 1433 SQL Server, 3268 Catálogo global AD, 3306 MySQL, 3389 Escritorio remoto, 5060 SIP, 5432 PostgreSQL, 8080 HTTP alterno.
 
 ### `ipsec` — VPN
@@ -59,6 +70,26 @@ Puertos con nombre: 21 FTP, 22 SSH, 23 Telnet, 25 SMTP, 53 DNS, 67 DHCP, 80 HTTP
 | `WAN2: DPD detection times out. IPsec connection was disconnected. (Peers=A<->B)` | Túnel IPsec en WAN2 caído: el otro extremo (B) no responde | **Abre** `ipsec_down`, clave = WAN |
 
 Campos: `wan`, `phase`, `local`, `remote`, `intervalo`, `principal`, `secundario`.
+
+### `sslvpn` — VPN
+
+| Mensaje | Resumen |
+|---|---|
+| `[OMADA]SSL VPN client login, account=lchoque, loginIP=179.6.144.61, virtualIP=172.24.24.3` | Inició sesión en la VPN lchoque desde 179.6.144.61 (IP virtual 172.24.24.3) |
+| `[OMADA]SSL VPN client logout, account=…` | Cerró sesión en la VPN … (igual que el anterior) |
+| `[OMADA]SSL VPN TLS: Initial packet from [AF_INET]179.6.144.61:61079` | Intento de conexión a la VPN desde 179.6.144.61:61079 |
+| `[OMADA]SSL VPN peer is inactive.` | La VPN cerró una conexión por inactividad |
+
+Campos: `usuario`, `ip-origen`, `ip-virtual`, `puerto`. La IP virtual se reutiliza entre usuarios, así que no identifica a nadie.
+
+### `noip` — Conectividad
+
+| Mensaje | Resumen |
+|---|---|
+| `[OMADA]WAN5: No-IP DDNS logining succeeded, username is k75nkyd.` | WAN5: sesión correcta en el servicio DDNS No-IP (usuario k75nkyd) |
+| `[OMADA]WAN5: No-IP DDNS registeration/update succeeded. 190.116.174.106 and fondesurco.ddns.net  are bound.` | WAN5: DDNS actualizado, fondesurco.ddns.net apunta a 190.116.174.106 |
+
+Campos: `wan`, `usuario`, `ip`, `dominio`. Se repite cada pocos minutos. Un fallo de DDNS (otro mensaje) llega a *Por aprobar*.
 
 ### `online_dection` — Conectividad
 (Así se escribe el módulo en Omada.)
@@ -107,6 +138,7 @@ Un cierre automático (`auto_close_secs`) lo hace una tarea cada 30 s: si `last_
 | `ipsec_down` | "Set up IPsec connection successfully" | Error (3) |
 | `ip_conflict` | 15 min sin repetirse | — |
 | `rogue_dhcp` | 90 min sin repetirse | Aviso (4) |
+| `arp_conflict` | 15 min sin repetirse | — |
 
 ## Tipos desconocidos y aprobación
 
