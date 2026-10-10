@@ -242,12 +242,22 @@ if [ ! -f "$NGINX_SITE" ]; then
   if [ -n "$DOMAIN" ]; then
     sed "s/logs\.tu-dominio\.com/$DOMAIN/" "$APP_DIR/deploy/nginx-syslogweb.conf" > "$NGINX_SITE"
   else
-    sed -e 's/listen 80;/listen 80 default_server;/' -e 's/server_name logs\.tu-dominio\.com;/server_name _;/' \
+    # Por IP: este sitio solo puede ser el predeterminado si no hay otro (nginx rechaza dos)
+    DEFAULT_OPT=" default_server"
+    if grep -rqE 'listen[^;]*default_server' /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null; then
+      DEFAULT_OPT=""
+      warn "Este servidor ya tiene otro sitio en nginx como predeterminado: entrar por la IP mostrará ESE sitio, no Syslog Web."
+      warn "Usa un dominio (puede ser gratuito: IP-con-guiones.sslip.io) y repite el instalador con --domain."
+    fi
+    sed -e "s/listen 80;/listen 80$DEFAULT_OPT;/" -e 's/server_name logs\.tu-dominio\.com;/server_name _;/' \
       "$APP_DIR/deploy/nginx-syslogweb.conf" > "$NGINX_SITE"
   fi
 fi
 ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/syslogweb
-rm -f /etc/nginx/sites-enabled/default
+# Solo se retira el sitio de bienvenida de nginx; los demás sitios del servidor no se tocan
+if [ "$(readlink -f /etc/nginx/sites-enabled/default 2>/dev/null)" = /etc/nginx/sites-available/default ]; then
+  rm -f /etc/nginx/sites-enabled/default
+fi
 nginx -t
 systemctl reload nginx
 
@@ -266,14 +276,28 @@ fi
 # ───────── 10. Firewall y respaldo diario ─────────
 step "10/10 Firewall y respaldo diario"
 if [ "$FIREWALL" = 1 ]; then
-  SSH_PORT=$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}')
-  ufw default deny incoming >/dev/null
-  ufw default allow outgoing >/dev/null
-  ufw allow "${SSH_PORT:-22}/tcp" >/dev/null
-  ufw allow 80/tcp >/dev/null
-  ufw allow 443/tcp >/dev/null
-  ufw --force enable >/dev/null
-  echo "ufw activo: SSH (${SSH_PORT:-22}), 80 y 443. Los puertos de cada cliente los abre la web al encenderlo."
+  SSH_PORT=$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}' || true)
+  SSH_PORT=${SSH_PORT:-22}
+  if ufw status | grep -q '^Status: active'; then
+    # Ya hay un firewall en uso: solo se agregan nuestras reglas, no se cambian sus políticas
+    ufw allow "$SSH_PORT/tcp" >/dev/null; ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null
+    echo "ufw ya estaba activo: se agregaron SSH ($SSH_PORT), 80 y 443."
+  else
+    # No se enciende un firewall nuevo en un servidor que ya presta otros servicios: los dejaría sin acceso
+    OTHERS=$(ss -Hltun 2>/dev/null | awk '$5 !~ /^(127\.|\[::1\]|\[::ffff:127)/ {n=split($5,a,":"); print a[n]}' \
+      | sort -un | grep -vxE "$SSH_PORT|80|443|68|0|53" | tr '\n' ' ' || true)
+    if [ -n "$OTHERS" ]; then
+      warn "NO se activó el firewall: este servidor ya escucha en otros puertos ($OTHERS) y se cortarían."
+      warn "Decide tú qué abrir (ufw allow ...) y luego: sudo ufw enable. Mientras, usa el firewall del proveedor."
+      set_env FIREWALL_DRIVER none
+    else
+      ufw default deny incoming >/dev/null
+      ufw default allow outgoing >/dev/null
+      ufw allow "$SSH_PORT/tcp" >/dev/null; ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null
+      ufw --force enable >/dev/null
+      echo "ufw activo: SSH ($SSH_PORT), 80 y 443. Los puertos de cada cliente los abre la web al encenderlo."
+    fi
+  fi
   systemctl start syslogweb-fw.service >/dev/null 2>&1 || true
 else
   warn "Firewall sin tocar. Abre tú los puertos 80, 443 y los de syslog de cada cliente."
