@@ -29,7 +29,7 @@ El repositorio es privado, así que el servidor necesita una clave de solo lectu
 # a) Git y un usuario de sistema para la aplicación (si ya existen, no pasa nada)
 sudo apt-get update && sudo apt-get install -y git
 sudo id syslogweb >/dev/null 2>&1 || sudo adduser --system --group --home /opt/syslogweb syslogweb
-sudo chown syslogweb:syslogweb /opt/syslogweb
+sudo install -d -o syslogweb -g syslogweb -m 755 /opt/syslogweb
 
 # b) Clave de solo lectura para este servidor
 sudo -u syslogweb mkdir -p -m 700 /opt/syslogweb/.ssh
