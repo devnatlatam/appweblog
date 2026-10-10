@@ -84,20 +84,36 @@ Un solo script instala todo en un Debian 12 (o Ubuntu 22.04+): PostgreSQL, la ba
 ssh debian@IP-DEL-SERVIDOR
 ```
 
-**2. Consigue el script en el servidor.** Elige una:
+**2. Descarga el instalador desde git.** El repositorio es privado, así que el servidor necesita una clave de solo lectura (se crea en el servidor y se registra **una sola vez** en GitHub). Nada se copia a mano desde tu PC.
 
 ```bash
-# a) Repositorio público
-curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh
+# a) Git y un usuario de sistema para la aplicación (si ya existen, no pasa nada)
+sudo apt-get update && sudo apt-get install -y git
+sudo id syslogweb >/dev/null 2>&1 || sudo adduser --system --group --home /opt/syslogweb syslogweb
+sudo chown syslogweb:syslogweb /opt/syslogweb
 
-# b) Repositorio privado: ejecuta esto desde TU PC, en la carpeta del proyecto
-scp deploy/install.sh debian@IP-DEL-SERVIDOR:~/install.sh
+# b) Clave de solo lectura para este servidor
+sudo -u syslogweb mkdir -p -m 700 /opt/syslogweb/.ssh
+sudo -u syslogweb ssh-keygen -t ed25519 -N "" -C "weblog-servidor" -f /opt/syslogweb/.ssh/id_ed25519
+sudo cat /opt/syslogweb/.ssh/id_ed25519.pub
 ```
 
-**3. Ejecútalo** con tus datos (sin opciones, te las pregunta):
+Copia la línea `ssh-ed25519 AAAA...` que imprime y regístrala en GitHub: repositorio `devnatlatam/weblog` → **Settings → Deploy keys → Add deploy key** (**sin** marcar "Allow write access"). Luego:
 
 ```bash
-sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
+# c) Descargar el repositorio con esa clave
+sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
+sudo -u syslogweb env GIT_SSH_COMMAND="ssh -i /opt/syslogweb/.ssh/id_ed25519 -o IdentitiesOnly=yes" \
+  git clone --depth 1 git@github.com:devnatlatam/weblog.git /tmp/weblog-src
+```
+
+> Si el repositorio fuera público, basta `curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh` y se salta este paso.
+
+**3. Ejecútalo** con tus datos (sin opciones, te las pregunta). Reutiliza la clave del paso anterior:
+
+```bash
+sudo bash /tmp/weblog-src/deploy/install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
+rm -rf /tmp/weblog-src      # al terminar: el instalador ya dejó el código en /opt/syslogweb
 ```
 
 Tarda de 3 a 10 minutos y muestra los pasos `1/10` … `10/10`.
