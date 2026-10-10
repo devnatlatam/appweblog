@@ -29,7 +29,7 @@ Elige **una** de estas formas. Todas dejan un archivo `install.sh` en tu carpeta
 |---|---|
 | **El repositorio es público** | `curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh` |
 | **El repositorio es privado** (lo más probable) | Desde **tu PC** (PowerShell o terminal), en la carpeta del proyecto: `scp deploy/install.sh debian@IP-DEL-SERVIDOR:~/install.sh` |
-| **Tienes git y acceso al repositorio en el servidor** | `git clone https://github.com/devnatlatam/weblog.git && cp weblog/deploy/install.sh .` |
+| **Tienes git y acceso al repositorio en el servidor** | `git clone git@github.com:devnatlatam/weblog.git && cp weblog/deploy/install.sh .` |
 
 Comprueba que está: `ls -l install.sh`.
 

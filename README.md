@@ -50,7 +50,7 @@ Los logs **no pasan por archivos de texto**: Node escucha el puerto y guarda en 
 Requisitos: Node.js 20 o superior y PostgreSQL 15 o superior. Guía completa en [instalación para desarrollo](docs/04-instalacion-desarrollo.md).
 
 ```bash
-git clone https://github.com/devnatlatam/weblog.git && cd weblog
+git clone git@github.com:devnatlatam/weblog.git && cd weblog
 
 # 1. Base de datos: crea una vacía llamada db_syslog (o la que prefieras)
 # 2. Servidor

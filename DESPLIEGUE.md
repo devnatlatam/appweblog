@@ -78,7 +78,7 @@ El código está en GitHub: **https://github.com/devnatlatam/weblog** (rama `mai
 
 ```bash
 sudo -u syslogweb git -C /opt/syslogweb init -b main
-sudo -u syslogweb git -C /opt/syslogweb remote add origin https://github.com/devnatlatam/weblog.git
+sudo -u syslogweb git -C /opt/syslogweb remote add origin git@github.com:devnatlatam/weblog.git
 sudo -u syslogweb git -C /opt/syslogweb pull origin main
 ```
 

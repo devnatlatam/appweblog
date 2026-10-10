@@ -17,7 +17,7 @@ Sistema operativo: desarrollado y probado en **Windows 11**. En Linux debería f
 El proyecto está en https://github.com/devnatlatam/weblog.
 
 ```bash
-git clone https://github.com/devnatlatam/weblog.git
+git clone git@github.com:devnatlatam/weblog.git
 cd weblog
 ```
 
