@@ -15,16 +15,67 @@ Todo el ciclo de vida del servidor, con **un comando para instalar** y **un coma
 
 ## 1. Instalar (un solo comando)
 
-Conéctate al servidor por SSH y ejecuta:
+Hay tres pasos: **conseguir el script**, **ejecutarlo** y **guardar la contraseña que muestra**. No hace falta preparar nada más: el script instala PostgreSQL, crea la base y el usuario, y deja todo funcionando.
+
+### Paso 1: entra al servidor
+
+Desde tu PC: `ssh debian@IP-DEL-SERVIDOR` (o el usuario que te dieron). Debes poder usar `sudo`, o ser `root`.
+
+### Paso 2: consigue el script en el servidor
+
+Elige **una** de estas formas. Todas dejan un archivo `install.sh` en tu carpeta actual.
+
+| Si… | Haz esto |
+|---|---|
+| **El repositorio es público** | `curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh` |
+| **El repositorio es privado** (lo más probable) | Desde **tu PC** (PowerShell o terminal), en la carpeta del proyecto: `scp deploy/install.sh debian@IP-DEL-SERVIDOR:~/install.sh` |
+| **Tienes git y acceso al repositorio en el servidor** | `git clone https://github.com/devnatlatam/weblog.git && cp weblog/deploy/install.sh .` |
+
+Comprueba que está: `ls -l install.sh`.
+
+> El script debe estar ya subido a `main` en GitHub para las opciones 1 y 3. Si aún no lo está, usa `scp`.
+
+### Paso 3: ejecútalo
+
+Reemplaza los tres datos por los tuyos:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh
 sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
 ```
 
-> Si el repositorio es **privado**, `curl` no podrá bajar el script. Cópialo desde tu PC: `scp deploy/install.sh usuario@servidor:~` y ejecútalo igual. El resto lo resuelve solo.
+| Dato | Qué poner |
+|---|---|
+| `--domain` | La dirección de la web, que **ya debe apuntar a la IP del servidor** (registro DNS tipo A). Si aún no tienes dominio, omite esta opción: se instala por IP, sin HTTPS. |
+| `--email` | Tu correo. Será el **usuario** con el que entras a la web. |
+| `--name` | Tu nombre, entre comillas. |
 
-Tarda unos minutos. Si no pasas las opciones, **te las pregunta**. Al terminar muestra la dirección de la web y una **contraseña temporal que se ve una sola vez**: guárdala. Al entrar, el sistema te pide crear una propia.
+También puedes ejecutar solo `sudo bash install.sh`: **te hace las preguntas** que falten.
+
+Mientras corre verás los pasos numerados `1/10` … `10/10`. Tarda entre 3 y 10 minutos. No lo interrumpas.
+
+**Si el repositorio es privado**, en el paso `4/10` se detiene, imprime una línea larga que empieza con `ssh-ed25519` y te pide registrarla en GitHub:
+1. Cópiala entera.
+2. En GitHub: repositorio → **Settings → Deploy keys → Add deploy key**. Pega la línea y **deja sin marcar** "Allow write access".
+3. Vuelve a la terminal y pulsa **Enter**. Continúa solo.
+
+### Paso 4: guarda lo que muestra al final
+
+```
+============================================================
+ Instalación terminada
+============================================================
+ Web:        https://logs.tu-dominio.com
+ Usuario:    tu@correo.com
+ contraseña: Ab3dEf9hIjK   (guárdala ahora, no se vuelve a mostrar)
+```
+
+**La contraseña se muestra una sola vez.** Cópiala antes de cerrar la terminal. Abre la web, entra con ese correo y esa contraseña, y el sistema te pedirá crear una propia.
+
+### Si algo sale mal
+
+El script se puede **repetir tantas veces como haga falta**: no duplica nada ni borra datos. Corrige el problema (el mensaje en rojo dice cuál es) y ejecuta el mismo comando otra vez. Ejemplos: el dominio todavía no apuntaba al servidor (el HTTPS falla pero lo demás queda instalado; cuando el dominio apunte, `sudo certbot --nginx -d logs.tu-dominio.com`), o se cortó la conexión SSH.
+
+> Si ya habías creado a mano cosas de la guía manual (usuario de sistema, base, clave de PostgreSQL), no las borres: el script las detecta y las reutiliza. Un usuario creado con un nombre equivocado (por ejemplo `syslogwe`) sí conviene eliminarlo: `sudo deluser --system syslogwe && sudo delgroup syslogwe`.
 
 ### Qué hace el script (y por qué es seguro repetirlo)
 

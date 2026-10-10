@@ -66,18 +66,94 @@ npm install
 npm run dev                 # http://localhost:5173
 ```
 
-## Instalar en un servidor (un solo comando)
+## Instalar en un servidor (producción)
+
+Un solo script instala todo en un Debian 12 (o Ubuntu 22.04+): PostgreSQL, la base de datos y su usuario, Node.js, nginx, HTTPS, firewall, servicios, respaldo diario y el primer administrador.
+
+### Qué necesitas antes
+
+- Un servidor Debian 12 con acceso `sudo` (o `root`) y salida a internet.
+- Un dominio, por ejemplo `logs.tu-dominio.com`, **ya apuntando a la IP del servidor** (registro DNS tipo A). Sin dominio se instala por IP, sin HTTPS.
+- Tu correo y tu nombre: serán el primer administrador.
+
+### Paso a paso
+
+**1. Entra al servidor** desde tu PC:
 
 ```bash
-# En un Debian 12 limpio, con tu dominio apuntando al servidor
-curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh
-sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
-
-# Para actualizar después (usa git)
-sudo syslogweb-update
+ssh debian@IP-DEL-SERVIDOR
 ```
 
-Todo el detalle, opciones y cómo volver atrás: [Instalación y actualización](docs/15-instalacion-y-actualizacion.md). Si prefieres hacerlo a mano paso a paso: [DESPLIEGUE.md](DESPLIEGUE.md).
+**2. Consigue el script en el servidor.** Elige una:
+
+```bash
+# a) Repositorio público
+curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh
+
+# b) Repositorio privado: ejecuta esto desde TU PC, en la carpeta del proyecto
+scp deploy/install.sh debian@IP-DEL-SERVIDOR:~/install.sh
+```
+
+**3. Ejecútalo** con tus datos (sin opciones, te las pregunta):
+
+```bash
+sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
+```
+
+Tarda de 3 a 10 minutos y muestra los pasos `1/10` … `10/10`.
+Si el repositorio es privado, en el paso 4 imprime una clave `ssh-ed25519...`: regístrala en GitHub (repositorio → **Settings → Deploy keys → Add deploy key**, **sin** marcar "Allow write access") y pulsa Enter.
+
+**4. Guarda la contraseña temporal** que aparece al final. **Se muestra una sola vez.**
+
+```
+ Web:        https://logs.tu-dominio.com
+ Usuario:    tu@correo.com
+ contraseña: Ab3dEf9hIjK   (guárdala ahora, no se vuelve a mostrar)
+```
+
+**5. Entra a la web** con ese correo y contraseña. El sistema te pide crear una propia.
+
+**6. Configura desde la web:**
+1. *Administración → Correo*: servidor SMTP y correo de prueba.
+2. *Gestionar clientes → Nuevo cliente*: elige un puerto libre (ej. 5514 UDP) y déjalo encendido. La web lo abre en el firewall sola.
+3. En el equipo Omada, apunta el syslog remoto a la IP del servidor y ese puerto ([cómo](docs/03-conectar-equipos-omada.md)).
+
+Si algo falla, **corrige y vuelve a ejecutar el mismo comando**: el script no duplica nada ni borra datos.
+
+### Opciones del instalador
+
+| Opción | Para qué |
+|---|---|
+| `--domain DOMINIO` | Dirección de la web. Sin ella: por IP, sin HTTPS |
+| `--email CORREO` / `--name NOMBRE` | Primer administrador |
+| `--branch RAMA_O_ETIQUETA` | Instalar una versión concreta (ej. `v1.0.0`) |
+| `--repo URL` | Otro repositorio (un fork) |
+| `--timezone ZONA` | Zona horaria de los días de logs (por defecto `America/Lima`) |
+| `--no-https` / `--no-firewall` | No pedir certificado / no tocar `ufw` |
+| `--yes` | Sin preguntas (para automatizar) |
+
+### Actualizar (con git)
+
+```bash
+sudo syslogweb-update --check     # ver qué cambios llegan, sin instalar
+sudo syslogweb-update             # actualizar a lo último de main (respalda la base antes)
+sudo syslogweb-update v1.2.0      # ir a una versión concreta, o volver atrás
+sudo syslogweb-update main        # volver a lo último
+```
+
+No edites archivos dentro de `/opt/syslogweb`: los cambios se hacen en git. Tu configuración (`.env`) y tus datos no se tocan.
+
+### Comandos del día a día
+
+```bash
+sudo systemctl status syslogweb          # ¿está vivo?
+sudo journalctl -u syslogweb -f          # logs en vivo
+sudo systemctl restart syslogweb         # reiniciar
+sudo -u syslogweb git -C /opt/syslogweb log -1 --format='%h %s (%cd)'   # qué versión corre
+cd /opt/syslogweb/server && sudo -u syslogweb npm run user:reset -- --email tu@correo.com   # recuperar acceso
+```
+
+Detalle de cada paso del instalador, errores frecuentes y respaldos: [Instalación y actualización](docs/15-instalacion-y-actualizacion.md). Instalación manual, paso por paso: [DESPLIEGUE.md](DESPLIEGUE.md).
 
 ## Documentación
 
