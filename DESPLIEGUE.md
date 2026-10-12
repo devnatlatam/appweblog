@@ -244,7 +244,7 @@ cat /var/lib/syslogweb/firewall.status            # {"token":"...","ok":true,...
 journalctl -u syslogweb-fw -n 20                  # salida del aplicador
 ```
 
-> **Pendiente de verificar en tu servidor:** el aplicador se probó con un ufw de mentira, no con ufw real. La parte más delicada es que ufw borre una regla creada con comentario usando solo su descripción. Haz la comprobación de arriba, y luego apaga el cliente y confirma que su regla desaparece de `ufw status`. Si no desaparece, la web te avisará con "no se pudo cerrar en el firewall".
+> **Verificado con `ufw` real:** el aplicador abre y cierra los puertos de los clientes. Si alguna vez una regla no desaparece de `ufw status` al apagar un cliente, la web avisará con "no se pudo cerrar en el firewall".
 
 Si no activas `FIREWALL_DRIVER=ufw`, todo sigue funcionando, pero abrir cada puerto en el firewall queda a tu cargo:
 

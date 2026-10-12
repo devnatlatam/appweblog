@@ -4,7 +4,7 @@ Qué está probado, qué no, qué límites tiene y qué falta. Escrito sin adorn
 
 ## Resumen
 
-El sistema funciona **de punta a punta en desarrollo** (Windows 11, Node 24, PostgreSQL 17): recibe logs por puertos, los interpreta, detecta incidentes, transmite en vivo, aprueba tipos nuevos, borra por días y envía alertas por correo con un servidor SMTP de prueba. Lo que **nunca se ha ejecutado** es la instalación en el servidor real (Debian) y el contacto con un proveedor real de correo o con `ufw` real.
+El sistema funciona **de punta a punta en desarrollo** (Windows 11, Node 24, PostgreSQL 17): recibe logs por puertos, los interpreta, detecta incidentes, transmite en vivo, aprueba tipos nuevos, borra por días y envía alertas por correo con un servidor SMTP de prueba. Además, ya se **verificó en el servidor real** (Debian 12) la instalación, PostgreSQL 15, `ufw` real, nginx con WebSocket y la carga alta ([ver abajo](#verificado-en-el-servidor-real)). Lo que **sigue sin probarse** es el contacto con un proveedor real de correo.
 
 ## Qué se probó
 
@@ -30,18 +30,25 @@ Durante el desarrollo se probó con scripts de prueba que **no se conservaron en
 | **Firewall (programa root)** | `deploy/test-fw-sync.sh` (**sí está en el repositorio**) con un `ufw` simulado: abrir, no repetir, cerrar, cambiar IP, puertos protegidos, entradas inválidas, fallos, archivo incompleto |
 | **Firewall (lado web)** | Encender/apagar/crear/eliminar con el programa simulado: éxito, rechazo, sin respuesta, reversión |
 
+## Verificado en el servidor real
+
+Confirmado por el administrador en el servidor de producción (Debian 12, detrás de un OPNsense), con un router Omada ER8411 enviando logs reales:
+
+| Área | Resultado |
+|---|---|
+| **Instalación en Debian** | `install.sh`, `update.sh` y la descarga del código con `git` funcionan |
+| **PostgreSQL 15** | Funciona (en desarrollo se había probado con la 17) |
+| **`ufw` real** | Funciona: el aplicador abre y cierra los puertos de los clientes |
+| **nginx + WebSocket** | Funciona, incluido el tiempo real |
+| **Carga alta** | Funciona con la carga real del servidor |
+| **Formato real de los mensajes en la red** | Llegan por UDP y se interpretan los de un ER8411 (firewall, DHCP, SSL VPN, No-IP, ARP) |
+
 ## Qué NO está verificado
 
 | Pendiente de verificar | Por qué importa |
 |---|---|
-| **Instalación en Debian** | `deploy/install.sh` y `deploy/update.sh` (solo revisados en sintaxis) y los pasos de `DESPLIEGUE.md` no se ejecutaron nunca de principio a fin, incluida la descarga del código con `git` (clave de despliegue, `git pull`) y la reinstalación de los archivos de `deploy/`. Pueden tener errores. |
-| **PostgreSQL 15** | Debian 12 trae la 15; se probó con la 17. Debería funcionar. |
 | **Correo con un proveedor real** | Gmail, Microsoft 365 u otros pueden tener requisitos propios (contraseñas de aplicación, bloqueo del puerto). |
-| **`ufw` real** | Falta confirmar que `ufw` borra una regla creada con comentario usando solo su descripción. Si no, la web avisa "no se pudo cerrar en el firewall". |
-| **nginx + WebSocket** | La configuración es estándar pero no se probó. |
-| **Formato real de los mensajes en la red** | Se vieron los de archivos de rsyslog, no capturas de red. El intérprete es tolerante a las cabeceras habituales, pero conviene capturar con `tcpdump` al conectar el primer equipo. |
 | **Interfaz en distintos navegadores y celulares** | Las pruebas automáticas cubrieron la API y que la web compile, no su aspecto ni su uso real. |
-| **Carga alta** | Medido ~105.000 eventos/día en un sitio. No se probó con tráfico mucho mayor. |
 | **Cambiar `APP_TIMEZONE` con datos** | Se espera un choque de particiones; no se probó. |
 | **Último superadmin** | La protección existe en el código pero no se ejercitó para no arriesgar una cuenta real. |
 

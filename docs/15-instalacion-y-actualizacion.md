@@ -2,7 +2,7 @@
 
 Todo el ciclo de vida del servidor, con **un comando para instalar** y **un comando para actualizar**. Para quien administra el servidor (no hace falta programar).
 
-> **Estado:** los scripts `deploy/install.sh` y `deploy/update.sh` pasaron la revisión de sintaxis, pero **todavía no se han ejecutado en un Debian real**. Pruébalos primero en un servidor desechable y cualquier fallo corrígelo en el script, no a mano. Ver [Estado y pendientes](12-estado-y-pendientes.md).
+> **Estado:** los scripts `deploy/install.sh` y `deploy/update.sh` **ya se ejecutaron en un Debian 12 real** y funcionan. Si algo falla en otro servidor, corrígelo en el script, no a mano. Ver [Estado y pendientes](12-estado-y-pendientes.md).
 
 ## Lo que necesitas antes
 

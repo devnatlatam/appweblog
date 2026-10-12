@@ -10,7 +10,7 @@ Cómo levantar Omada Logs en tu equipo para probarlo o programar. Para instalarl
 | PostgreSQL | 15 o superior | Probado con 17. Necesita particionado por rango (11+). |
 | Navegador | Reciente | Chrome, Edge, Firefox |
 
-Sistema operativo: desarrollado y probado en **Windows 11**. En Linux debería funcionar igual (el servidor de producción es Debian), con la salvedad de que no se ha probado ahí todavía ([Estado y pendientes](12-estado-y-pendientes.md)).
+Sistema operativo: desarrollado y probado en **Windows 11**. En Linux funciona igual: el servidor de producción es Debian 12 y ya se verificó ahí ([Estado y pendientes](12-estado-y-pendientes.md)).
 
 ## 0. Obtener el código
 
