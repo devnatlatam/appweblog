@@ -14,11 +14,11 @@ Sistema operativo: desarrollado y probado en **Windows 11**. En Linux funciona i
 
 ## 0. Obtener el código
 
-El proyecto está en https://github.com/devnatlatam/weblog.
+El proyecto está en https://github.com/devnatlatam/appweblog.
 
 ```bash
-git clone git@github.com:devnatlatam/weblog.git
-cd weblog
+git clone git@github.com:devnatlatam/appweblog.git
+cd appweblog
 ```
 
 Si vas a hacer cambios, lee antes [Trabajo con git](14-trabajo-con-git.md): qué se sube, qué no, y cómo pasar un cambio al servidor.

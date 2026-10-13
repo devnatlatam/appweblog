@@ -2,7 +2,7 @@
 
 Cómo se versiona el proyecto, qué se sube y qué no, y cómo pasar un cambio del código al servidor. Para quien programa o despliega.
 
-**Repositorio:** https://github.com/devnatlatam/weblog · **Rama principal:** `main`
+**Repositorio:** https://github.com/devnatlatam/appweblog · **Rama principal:** `main`
 
 ## Qué se versiona y qué no
 
@@ -67,8 +67,8 @@ En el servidor puedes instalar justo esa versión (`git checkout v1.0.0`) y volv
 ## Empezar en un equipo nuevo
 
 ```bash
-git clone git@github.com:devnatlatam/weblog.git
-cd weblog
+git clone git@github.com:devnatlatam/appweblog.git
+cd appweblog
 # luego sigue docs/04-instalacion-desarrollo.md
 ```
 

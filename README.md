@@ -50,7 +50,7 @@ Los logs **no pasan por archivos de texto**: Node escucha el puerto y guarda en 
 Requisitos: Node.js 20 o superior y PostgreSQL 15 o superior. Guía completa en [instalación para desarrollo](docs/04-instalacion-desarrollo.md).
 
 ```bash
-git clone git@github.com:devnatlatam/weblog.git && cd weblog
+git clone git@github.com:devnatlatam/appweblog.git && cd weblog
 
 # 1. Base de datos: crea una vacía llamada db_syslog (o la que prefieras)
 # 2. Servidor
@@ -98,16 +98,16 @@ sudo -u syslogweb ssh-keygen -t ed25519 -N "" -C "weblog-servidor" -f /opt/syslo
 sudo cat /opt/syslogweb/.ssh/id_ed25519.pub
 ```
 
-Copia la línea `ssh-ed25519 AAAA...` que imprime y regístrala en GitHub: repositorio `devnatlatam/weblog` → **Settings → Deploy keys → Add deploy key** (**sin** marcar "Allow write access"). Luego:
+Copia la línea `ssh-ed25519 AAAA...` que imprime y regístrala en GitHub: repositorio `devnatlatam/appweblog` → **Settings → Deploy keys → Add deploy key** (**sin** marcar "Allow write access"). Luego:
 
 ```bash
 # c) Descargar el repositorio con esa clave
 sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
 sudo -u syslogweb env GIT_SSH_COMMAND="ssh -i /opt/syslogweb/.ssh/id_ed25519 -o IdentitiesOnly=yes" \
-  git clone --depth 1 git@github.com:devnatlatam/weblog.git /tmp/weblog-src
+  git clone --depth 1 git@github.com:devnatlatam/appweblog.git /tmp/weblog-src
 ```
 
-> Si el repositorio fuera público, basta `curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh` y se salta este paso.
+> Si el repositorio fuera público, basta `curl -fsSL https://raw.githubusercontent.com/devnatlatam/appweblog/main/deploy/install.sh -o install.sh` y se salta este paso.
 
 **3. Ejecútalo** con tus datos (sin opciones, te las pregunta). Reutiliza la clave del paso anterior:
 
@@ -195,7 +195,7 @@ Detalle de cada paso del instalador, errores frecuentes y respaldos: [Instalaci�
 
 ## Estructura del repositorio
 
-Código en https://github.com/devnatlatam/weblog (rama `main`).
+Código en https://github.com/devnatlatam/appweblog (rama `main`).
 
 ```
 server/            API, colector de puertos, intérprete de logs, alertas

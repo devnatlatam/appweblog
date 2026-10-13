@@ -11,7 +11,7 @@ Todo el ciclo de vida del servidor, con **un comando para instalar** y **un coma
 | Un servidor | Debian 12 (o Ubuntu 22.04+), con acceso `sudo` y salida a internet. |
 | Un dominio *(recomendado)* | Algo como `logs.tu-dominio.com`, ya apuntando a la IP del servidor. Sin él, funciona por IP pero sin HTTPS. |
 | Un correo | Será el del primer administrador (y el que usa Let's Encrypt para avisar de vencimientos). |
-| Acceso al repositorio | https://github.com/devnatlatam/weblog. Si es privado, el instalador crea una clave de solo lectura y te la muestra para registrarla en GitHub. |
+| Acceso al repositorio | https://github.com/devnatlatam/appweblog. Si es privado, el instalador crea una clave de solo lectura y te la muestra para registrarla en GitHub. |
 
 ## 1. Instalar (un solo comando)
 
@@ -37,17 +37,17 @@ sudo -u syslogweb ssh-keygen -t ed25519 -N "" -C "weblog-servidor" -f /opt/syslo
 sudo cat /opt/syslogweb/.ssh/id_ed25519.pub
 ```
 
-Copia la línea `ssh-ed25519 AAAA...` y regístrala: GitHub → repositorio `devnatlatam/weblog` → **Settings → Deploy keys → Add deploy key**, **sin** marcar "Allow write access" (y **no** en *Settings → SSH keys* de tu cuenta: daría acceso a todo lo tuyo). Luego:
+Copia la línea `ssh-ed25519 AAAA...` y regístrala: GitHub → repositorio `devnatlatam/appweblog` → **Settings → Deploy keys → Add deploy key**, **sin** marcar "Allow write access" (y **no** en *Settings → SSH keys* de tu cuenta: daría acceso a todo lo tuyo). Luego:
 
 ```bash
 # c) Descargar el repositorio con esa clave
 sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
 sudo -u syslogweb env GIT_SSH_COMMAND="ssh -i /opt/syslogweb/.ssh/id_ed25519 -o IdentitiesOnly=yes" \
-  git clone --depth 1 git@github.com:devnatlatam/weblog.git /tmp/weblog-src
+  git clone --depth 1 git@github.com:devnatlatam/appweblog.git /tmp/weblog-src
 ls /tmp/weblog-src/deploy      # debe listar install.sh y update.sh
 ```
 
-> Si el repositorio fuera **público**, bastaría `curl -fsSL https://raw.githubusercontent.com/devnatlatam/weblog/main/deploy/install.sh -o install.sh` y no habría clave que registrar.
+> Si el repositorio fuera **público**, bastaría `curl -fsSL https://raw.githubusercontent.com/devnatlatam/appweblog/main/deploy/install.sh -o install.sh` y no habría clave que registrar.
 
 Si ya ejecutaste el instalador antes y quedó `/opt/syslogweb/.ssh`, **no lo borres**: ahí está la clave. Si lo borraste, repite este paso y quita la clave vieja de *Deploy keys*.
 
