@@ -35,12 +35,7 @@ done
 step() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
 as_app() { runuser -u "$APP_USER" -- env HOME="$APP_DIR" GIT_TERMINAL_PROMPT=0 "$@"; }
-# Si el servidor usa clave de despliegue (repositorio privado), git la necesita para conectarse
-KEY="$APP_DIR/.ssh/id_ed25519"
-if [ -f "$KEY" ]; then
-  export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=$APP_DIR/.ssh/known_hosts"
-fi
-g() { as_app env ${GIT_SSH_COMMAND:+GIT_SSH_COMMAND="$GIT_SSH_COMMAND"} git -C "$APP_DIR" "$@"; }
+g() { as_app git -C "$APP_DIR" "$@"; }
 
 [ "$(id -u)" -eq 0 ] || die "Ejecútalo con sudo:  sudo syslogweb-update"
 [ -d "$APP_DIR/.git" ] || die "$APP_DIR no es un repositorio git. ¿Se instaló con install.sh?"
@@ -50,6 +45,14 @@ if [ -n "$(g status --porcelain --untracked-files=no)" ]; then
   g status --short --untracked-files=no
   die "Hay archivos modificados a mano en $APP_DIR (lista arriba). Descártalos con 'git -C $APP_DIR restore <archivo>' o guárdalos, y repite."
 fi
+
+# El repositorio es público: las instalaciones que se hicieron con clave de despliegue (SSH) pasan a HTTPS
+OFFICIAL_REPO=https://github.com/devnatlatam/appweblog.git
+case "$(g remote get-url origin)" in
+  git@github.com:devnatlatam/appweblog.git|ssh://git@github.com/devnatlatam/appweblog.git)
+    g remote set-url origin "$OFFICIAL_REPO"
+    echo "Repositorio cambiado a $OFFICIAL_REPO (ya no hace falta la clave de despliegue)." ;;
+esac
 
 step "Buscando cambios"
 g fetch -q --tags --force origin

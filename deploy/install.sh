@@ -7,7 +7,7 @@
 # Detalle de cada paso y de las opciones: docs/15-instalacion-y-actualizacion.md
 set -euo pipefail
 
-REPO="${REPO:-git@github.com:devnatlatam/appweblog.git}"
+REPO="${REPO:-https://github.com/devnatlatam/appweblog.git}"
 BRANCH="${BRANCH:-main}"
 APP_USER=syslogweb
 APP_DIR=/opt/syslogweb
@@ -101,32 +101,10 @@ install -d -o "$APP_USER" -g "$APP_USER" "$APP_DIR"
 # ───────── 4. Código desde git ─────────
 step "4/10 Descargando el código ($REPO, $BRANCH)"
 GIT_URL="$REPO"
-export GIT_TERMINAL_PROMPT=0
-if ! git ls-remote "$GIT_URL" >/dev/null 2>&1 && ! as_app git ls-remote "$GIT_URL" >/dev/null 2>&1; then
-  # Repositorio privado: se crea una clave de solo lectura y se espera a que la registres en GitHub
-  KEY="$APP_DIR/.ssh/id_ed25519"
-  if [ ! -f "$KEY" ]; then
-    as_app mkdir -p -m 700 "$APP_DIR/.ssh"
-    as_app ssh-keygen -q -t ed25519 -N "" -C "syslogweb-$(hostname)" -f "$KEY"
-  fi
-  GIT_URL=$(printf '%s' "$REPO" | sed -E 's#^https://github.com/([^/]+/[^/.]+)(\.git)?$#git@github.com:\1.git#')
-  as_app sh -c "ssh-keyscan -t ed25519 github.com >> $APP_DIR/.ssh/known_hosts 2>/dev/null"
-  export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=$APP_DIR/.ssh/known_hosts"
-  until as_app env GIT_SSH_COMMAND="$GIT_SSH_COMMAND" git ls-remote "$GIT_URL" >/dev/null 2>&1; do
-    if [ "$ASSUME_YES" = 1 ] || [ ! -r /dev/tty ]; then
-      echo "Clave de despliegue (regístrala en GitHub → Settings → Deploy keys):"; cat "$KEY.pub"
-      die "El repositorio es privado y el servidor aún no tiene permiso. Registra la clave y repite el comando."
-    fi
-    echo
-    echo "El repositorio es privado. Registra esta clave en GitHub:"
-    echo "  Repositorio → Settings → Deploy keys → Add deploy key  (deja SIN marcar 'Allow write access')"
-    echo
-    cat "$KEY.pub"
-    echo
-    ask "Cuando la hayas guardado en GitHub, pulsa Enter para continuar..." _
-  done
-fi
-GITRUN() { as_app env ${GIT_SSH_COMMAND:+GIT_SSH_COMMAND="$GIT_SSH_COMMAND"} git -C "$APP_DIR" "$@"; }
+# El repositorio es público: se descarga por HTTPS, sin claves ni contraseñas
+as_app git ls-remote "$GIT_URL" >/dev/null 2>&1 \
+  || die "No se puede leer $GIT_URL. Revisa la conexión a internet del servidor y que la dirección sea correcta."
+GITRUN() { as_app git -C "$APP_DIR" "$@"; }
 if [ ! -d "$APP_DIR/.git" ]; then
   GITRUN init -q -b main
   GITRUN remote add origin "$GIT_URL"

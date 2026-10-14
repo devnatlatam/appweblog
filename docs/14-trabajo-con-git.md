@@ -67,7 +67,7 @@ En el servidor puedes instalar justo esa versión (`git checkout v1.0.0`) y volv
 ## Empezar en un equipo nuevo
 
 ```bash
-git clone git@github.com:devnatlatam/appweblog.git
+git clone https://github.com/devnatlatam/appweblog.git
 cd appweblog
 # luego sigue docs/04-instalacion-desarrollo.md
 ```

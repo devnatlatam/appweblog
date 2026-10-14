@@ -50,7 +50,7 @@ Los logs **no pasan por archivos de texto**: Node escucha el puerto y guarda en 
 Requisitos: Node.js 20 o superior y PostgreSQL 15 o superior. Guía completa en [instalación para desarrollo](docs/04-instalacion-desarrollo.md).
 
 ```bash
-git clone git@github.com:devnatlatam/appweblog.git && cd weblog
+git clone https://github.com/devnatlatam/appweblog.git && cd appweblog
 
 # 1. Base de datos: crea una vacía llamada db_syslog (o la que prefieras)
 # 2. Servidor
@@ -84,40 +84,22 @@ Un solo script instala todo en un Debian 12 (o Ubuntu 22.04+): PostgreSQL, la ba
 ssh debian@IP-DEL-SERVIDOR
 ```
 
-**2. Descarga el instalador desde git.** El repositorio es privado, así que el servidor necesita una clave de solo lectura (se crea en el servidor y se registra **una sola vez** en GitHub). Nada se copia a mano desde tu PC.
+**2. Descarga el instalador.** El repositorio es público: no hace falta clave ni contraseña.
 
 ```bash
-# a) Git y un usuario de sistema para la aplicación (si ya existen, no pasa nada)
-sudo apt-get update && sudo apt-get install -y git
-sudo id syslogweb >/dev/null 2>&1 || sudo adduser --system --group --home /opt/syslogweb syslogweb
-sudo install -d -o syslogweb -g syslogweb -m 755 /opt/syslogweb
-
-# b) Clave de solo lectura para este servidor
-sudo -u syslogweb mkdir -p -m 700 /opt/syslogweb/.ssh
-sudo -u syslogweb ssh-keygen -t ed25519 -N "" -C "weblog-servidor" -f /opt/syslogweb/.ssh/id_ed25519
-sudo cat /opt/syslogweb/.ssh/id_ed25519.pub
+curl -fsSL https://raw.githubusercontent.com/devnatlatam/appweblog/main/deploy/install.sh -o install.sh
 ```
 
-Copia la línea `ssh-ed25519 AAAA...` que imprime y regístrala en GitHub: repositorio `devnatlatam/appweblog` → **Settings → Deploy keys → Add deploy key** (**sin** marcar "Allow write access"). Luego:
+> Si el servidor no tiene `curl`: `sudo apt-get update && sudo apt-get install -y curl`.
+
+**3. Ejecútalo** con tus datos (sin opciones, te las pregunta). El instalador trae el código con `git` desde https://github.com/devnatlatam/appweblog y lo deja en `/opt/syslogweb`:
 
 ```bash
-# c) Descargar el repositorio con esa clave
-sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
-sudo -u syslogweb env GIT_SSH_COMMAND="ssh -i /opt/syslogweb/.ssh/id_ed25519 -o IdentitiesOnly=yes" \
-  git clone --depth 1 git@github.com:devnatlatam/appweblog.git /tmp/weblog-src
-```
-
-> Si el repositorio fuera público, basta `curl -fsSL https://raw.githubusercontent.com/devnatlatam/appweblog/main/deploy/install.sh -o install.sh` y se salta este paso.
-
-**3. Ejecútalo** con tus datos (sin opciones, te las pregunta). Reutiliza la clave del paso anterior:
-
-```bash
-sudo bash /tmp/weblog-src/deploy/install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
-rm -rf /tmp/weblog-src      # al terminar: el instalador ya dejó el código en /opt/syslogweb
+sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
+rm install.sh               # al terminar ya no hace falta
 ```
 
 Tarda de 3 a 10 minutos y muestra los pasos `1/10` … `10/10`.
-Si el repositorio es privado, en el paso 4 imprime una clave `ssh-ed25519...`: regístrala en GitHub (repositorio → **Settings → Deploy keys → Add deploy key**, **sin** marcar "Allow write access") y pulsa Enter.
 
 **4. Guarda la contraseña temporal** que aparece al final. **Se muestra una sola vez.**
 

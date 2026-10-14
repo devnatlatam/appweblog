@@ -11,7 +11,7 @@ Todo el ciclo de vida del servidor, con **un comando para instalar** y **un coma
 | Un servidor | Debian 12 (o Ubuntu 22.04+), con acceso `sudo` y salida a internet. |
 | Un dominio *(recomendado)* | Algo como `logs.tu-dominio.com`, ya apuntando a la IP del servidor. Sin él, funciona por IP pero sin HTTPS. |
 | Un correo | Será el del primer administrador (y el que usa Let's Encrypt para avisar de vencimientos). |
-| Acceso al repositorio | https://github.com/devnatlatam/appweblog. Si es privado, el instalador crea una clave de solo lectura y te la muestra para registrarla en GitHub. |
+| Acceso al repositorio | https://github.com/devnatlatam/appweblog. Es público: el servidor lo descarga por HTTPS, sin claves ni contraseñas. |
 
 ## 1. Instalar (un solo comando)
 
@@ -21,42 +21,22 @@ Hay tres pasos: **conseguir el script**, **ejecutarlo** y **guardar la contrase�
 
 Desde tu PC: `ssh debian@IP-DEL-SERVIDOR` (o el usuario que te dieron). Debes poder usar `sudo`, o ser `root`.
 
-### Paso 2: descarga el instalador desde git
+### Paso 2: descarga el instalador
 
-El repositorio es privado, así que el servidor necesita una clave de solo lectura (*deploy key*): se crea en el propio servidor y se registra **una sola vez** en GitHub. No se copia nada desde tu PC.
-
-```bash
-# a) Git y un usuario de sistema para la aplicación (si ya existen, no pasa nada)
-sudo apt-get update && sudo apt-get install -y git
-sudo id syslogweb >/dev/null 2>&1 || sudo adduser --system --group --home /opt/syslogweb syslogweb
-sudo install -d -o syslogweb -g syslogweb -m 755 /opt/syslogweb
-
-# b) Clave de solo lectura para este servidor
-sudo -u syslogweb mkdir -p -m 700 /opt/syslogweb/.ssh
-sudo -u syslogweb ssh-keygen -t ed25519 -N "" -C "weblog-servidor" -f /opt/syslogweb/.ssh/id_ed25519
-sudo cat /opt/syslogweb/.ssh/id_ed25519.pub
-```
-
-Copia la línea `ssh-ed25519 AAAA...` y regístrala: GitHub → repositorio `devnatlatam/appweblog` → **Settings → Deploy keys → Add deploy key**, **sin** marcar "Allow write access" (y **no** en *Settings → SSH keys* de tu cuenta: daría acceso a todo lo tuyo). Luego:
+El repositorio es público: no hace falta clave ni contraseña.
 
 ```bash
-# c) Descargar el repositorio con esa clave
-sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
-sudo -u syslogweb env GIT_SSH_COMMAND="ssh -i /opt/syslogweb/.ssh/id_ed25519 -o IdentitiesOnly=yes" \
-  git clone --depth 1 git@github.com:devnatlatam/appweblog.git /tmp/weblog-src
-ls /tmp/weblog-src/deploy      # debe listar install.sh y update.sh
+curl -fsSL https://raw.githubusercontent.com/devnatlatam/appweblog/main/deploy/install.sh -o install.sh
 ```
 
-> Si el repositorio fuera **público**, bastaría `curl -fsSL https://raw.githubusercontent.com/devnatlatam/appweblog/main/deploy/install.sh -o install.sh` y no habría clave que registrar.
-
-Si ya ejecutaste el instalador antes y quedó `/opt/syslogweb/.ssh`, **no lo borres**: ahí está la clave. Si lo borraste, repite este paso y quita la clave vieja de *Deploy keys*.
+> Si el servidor no tiene `curl`: `sudo apt-get update && sudo apt-get install -y curl`.
 
 ### Paso 3: ejecútalo
 
-Reemplaza los tres datos por los tuyos:
+Reemplaza los tres datos por los tuyos. El instalador trae el código con `git` desde https://github.com/devnatlatam/appweblog y lo deja en `/opt/syslogweb`:
 
 ```bash
-sudo bash /tmp/weblog-src/deploy/install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
+sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
 ```
 
 | Dato | Qué poner |
@@ -65,14 +45,11 @@ sudo bash /tmp/weblog-src/deploy/install.sh --domain logs.tu-dominio.com --email
 | `--email` | Tu correo. Será el **usuario** con el que entras a la web. |
 | `--name` | Tu nombre, entre comillas. |
 
-También puedes ejecutar solo `sudo bash /tmp/weblog-src/deploy/install.sh`: **te hace las preguntas** que falten.
+También puedes ejecutar solo `sudo bash install.sh`: **te hace las preguntas** que falten.
 
 Mientras corre verás los pasos numerados `1/10` … `10/10`. Tarda entre 3 y 10 minutos. No lo interrumpas.
 
-**Si el repositorio es privado**, en el paso `4/10` se detiene, imprime una línea larga que empieza con `ssh-ed25519` y te pide registrarla en GitHub:
-1. Cópiala entera.
-2. En GitHub: repositorio → **Settings → Deploy keys → Add deploy key**. Pega la línea y **deja sin marcar** "Allow write access".
-3. Vuelve a la terminal y pulsa **Enter**. Continúa solo.
+Al terminar puedes borrar `install.sh` (`rm install.sh`): el código ya quedó en `/opt/syslogweb`.
 
 ### Paso 4: guarda lo que muestra al final
 
@@ -195,7 +172,7 @@ Luego en el servidor: `sudo syslogweb-update` (o `sudo syslogweb-update v1.1.0`)
 
 | Síntoma | Qué hacer |
 |---|---|
-| El instalador dice que el repositorio es privado | Copia la clave que imprime en GitHub → *Settings → Deploy keys* (sin "write access") y vuelve a ejecutar. |
+| "No se puede leer https://github.com/..." en el paso 4 | El servidor no llega a GitHub. Prueba `curl -I https://github.com`; revisa DNS, proxy o el firewall de salida del proveedor. |
 | "No se pudo obtener el certificado HTTPS" | El dominio aún no apunta a la IP del servidor. Cuando apunte: `sudo certbot --nginx -d logs.tu-dominio.com`. |
 | El servicio no arranca | `sudo journalctl -u syslogweb -n 50`. Lo más común: clave de base de datos mal en `.env`. |
 | `syslogweb-update` dice "archivos modificados a mano" | `sudo -u syslogweb git -C /opt/syslogweb status` para verlos; descarta con `git restore <archivo>`. |

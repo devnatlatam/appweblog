@@ -17,7 +17,7 @@ Sistema operativo: desarrollado y probado en **Windows 11**. En Linux funciona i
 El proyecto está en https://github.com/devnatlatam/appweblog.
 
 ```bash
-git clone git@github.com:devnatlatam/appweblog.git
+git clone https://github.com/devnatlatam/appweblog.git
 cd appweblog
 ```
 

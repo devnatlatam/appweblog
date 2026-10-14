@@ -74,34 +74,13 @@ El código está en GitHub: **https://github.com/devnatlatam/appweblog** (rama `
 
 `/opt/syslogweb` ya existe (es la carpeta personal del usuario del paso 2) y `git clone` exige una carpeta vacía, por eso se inicializa y se trae el código en lugar de clonar. Funciona aunque la carpeta tenga archivos.
 
-### Si el repositorio es público
+El repositorio es público: se descarga por HTTPS, sin claves ni contraseñas.
 
 ```bash
 sudo -u syslogweb git -C /opt/syslogweb init -b main
-sudo -u syslogweb git -C /opt/syslogweb remote add origin git@github.com:devnatlatam/appweblog.git
+sudo -u syslogweb git -C /opt/syslogweb remote add origin https://github.com/devnatlatam/appweblog.git
 sudo -u syslogweb git -C /opt/syslogweb pull origin main
 ```
-
-### Si el repositorio es privado: clave de despliegue (solo lectura)
-
-Una *clave de despliegue* le da al servidor permiso para **leer** ese único repositorio, y nada más. Es más seguro que guardar una contraseña o un token personal en el VPS.
-
-```bash
-sudo -u syslogweb mkdir -p -m 700 /opt/syslogweb/.ssh
-sudo -u syslogweb ssh-keygen -t ed25519 -N "" -C "syslogweb-vps" -f /opt/syslogweb/.ssh/id_ed25519
-sudo cat /opt/syslogweb/.ssh/id_ed25519.pub        # copia esa línea completa
-```
-
-En GitHub: abre el repositorio → **Settings → Deploy keys → Add deploy key**, pega la línea y **deja sin marcar** "Allow write access". Luego:
-
-```bash
-sudo -u syslogweb sh -c 'ssh-keyscan -t ed25519 github.com >> /opt/syslogweb/.ssh/known_hosts'
-sudo -u syslogweb git -C /opt/syslogweb init -b main
-sudo -u syslogweb git -C /opt/syslogweb remote add origin git@github.com:devnatlatam/appweblog.git
-sudo -u syslogweb git -C /opt/syslogweb pull origin main
-```
-
-> `ssh-keyscan` confía en la primera respuesta de GitHub. Si quieres verificar, compara la huella con las que GitHub publica en su documentación (*GitHub's SSH key fingerprints*).
 
 ### Comprobar
 
