@@ -91,7 +91,8 @@ function PortForm({ port, onClose, onSaved, firewallManaged }) {
 // Convierte un CSV (separado por coma, punto y coma o tabulación) en filas { name, port }.
 // Columnas: Nombre | Puerto, o Cliente | Sede | Puerto. El puerto es la última celda numérica.
 // Si la columna Cliente viene vacía (celda combinada en Excel), se repite el cliente de la fila anterior.
-// La primera fila sin número se toma como títulos; cualquier otra fila sin puerto se devuelve con port = null.
+// Las filas sin número del comienzo se toman como títulos; cualquier otra fila sin puerto se devuelve con port = null.
+// Una primera línea "sep=," (la que usa la plantilla para que Excel la abra en columnas) fija el separador.
 function splitCells(line, sep) {
   const cells = [];
   let cur = '';
@@ -109,19 +110,23 @@ function splitCells(line, sep) {
 
 function parseSheet(text) {
   const lines = text.split(/\r?\n/);
+  const firstIdx = lines.findIndex((l) => l.trim());
+  const directive = firstIdx === -1 ? null : lines[firstIdx].trim().match(/^"?sep=(.)"?[,;\t]*$/i);
+  if (directive) lines[firstIdx] = '';
   const first = lines.find((l) => l.trim()) || '';
-  const sep = first.includes('\t') ? '\t' : first.includes(';') ? ';' : ',';
+  const sep = directive ? directive[1] : first.includes('\t') ? '\t' : first.includes(';') ? ';' : ',';
   const out = [];
   let lastClient = '';
-  let seenRow = false;
+  let seenData = false;
   lines.forEach((line, i) => {
     if (!line.trim()) return;
     const cells = splitCells(line, sep);
     while (cells.length && !cells[cells.length - 1]) cells.pop();
+    if (!cells.length) return; // fila con solo separadores
     let pi = -1;
     for (let k = cells.length - 1; k >= 0; k--) if (/^\d+$/.test(cells[k])) { pi = k; break; }
-    if (pi === -1 && !seenRow) { seenRow = true; return; } // fila de títulos
-    seenRow = true;
+    if (pi === -1 && !seenData) return; // fila de títulos
+    seenData = true;
     const before = pi === -1 ? cells : cells.slice(0, pi);
     let name;
     if (before.length >= 2) {
@@ -176,7 +181,8 @@ function ImportDialog({ existing, onClose, onDone, firewallManaged }) {
     });
   };
   const downloadTemplate = () => {
-    const url = URL.createObjectURL(new Blob(['﻿nombre;puerto\nFONDESURCO - AREQUIPA PRINCIPAL;515\nFONDESURCO - ACARI;516\n'], { type: 'text/csv' }));
+    // "sep=," hace que Excel la abra en dos columnas sea cual sea su separador regional. Sin BOM: Excel ignora "sep=" si lo hay.
+    const url = URL.createObjectURL(new Blob(['sep=,\r\nnombre,puerto\r\nFONDESURCO - AREQUIPA PRINCIPAL,515\r\nFONDESURCO - ACARI,516\r\n'], { type: 'text/csv' }));
     const a = document.createElement('a');
     a.href = url;
     a.download = 'plantilla-clientes.csv';
