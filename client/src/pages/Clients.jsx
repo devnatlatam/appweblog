@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Settings2, ScrollText, Radio, CircleAlert, Cable, TriangleAlert } from 'lucide-react';
+import { Search, Plus, Settings2, ScrollText, Radio, CircleAlert, Cable, TriangleAlert, ChevronRight } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { PageHead, Empty, timeAgo } from '../components/ui';
+import { groupClients } from '../data/clientGroups';
 
 const SILENT_MS = 15 * 60000; // sin recibir nada durante este tiempo = "sin señal"
 const POLL_MS = 15000;
@@ -30,7 +31,7 @@ function Spark({ hourly, errors }) {
   );
 }
 
-function ClientCard({ p, ov, can }) {
+function ClientCard({ p, ov, can, name = p.clientName }) {
   const st = stateOf(p);
   const hourly = ov ? ov.hourly : Array(24).fill(0);
   const errs = ov ? ov.hourlyErrors : Array(24).fill(0);
@@ -39,7 +40,7 @@ function ClientCard({ p, ov, can }) {
     <article className={`panel client-card client-card--${st.key}${p.openIncidents ? ' has-incidents' : ''}`}>
       <header className="client-card__head">
         <div className="client-card__title">
-          <h2><Link to={base} className="client-card__link">{p.clientName}</Link></h2>
+          <h3><Link to={base} className="client-card__link" aria-label={p.clientName}>{name}</Link></h3>
           <p className="mono cell-sub">Puerto {p.port} · {p.protocol.toUpperCase()}</p>
         </div>
         <span className={`badge badge--${st.cls}`}>{st.label}</span>
@@ -72,6 +73,33 @@ function ClientCard({ p, ov, can }) {
   );
 }
 
+const isIssue = (r) => r.st.key === 'error' || r.st.key === 'silent' || r.p.openIncidents > 0;
+
+function GroupSection({ name, items, can, open, onToggle }) {
+  const receiving = items.filter((x) => x.item.st.key === 'ok' || x.item.st.key === 'waiting').length;
+  const issues = items.filter((x) => isIssue(x.item)).length;
+  const off = items.filter((x) => x.item.st.key === 'off').length;
+  return (
+    <section className={`client-group${issues ? ' has-issues' : ''}`}>
+      <button type="button" className="client-group__head" aria-expanded={open} onClick={onToggle}>
+        <ChevronRight size={18} aria-hidden="true" className="client-group__chev" />
+        <h2>{name}</h2>
+        <span className="cell-sub">{items.length} {items.length === 1 ? 'sede' : 'sedes'}</span>
+        <span className="client-group__stats">
+          <span className="badge badge--ok">{receiving} recibiendo</span>
+          {issues > 0 && <span className="badge badge--critical">{issues} con problemas</span>}
+          {off > 0 && <span className="badge badge--plain">{off} {off === 1 ? 'apagada' : 'apagadas'}</span>}
+        </span>
+      </button>
+      {open && (
+        <div className="client-grid">
+          {items.map((x) => <ClientCard key={x.item.p.id} p={x.item.p} ov={x.item.ov} can={can} name={x.label} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
 const FILTERS = [
   ['all', 'Todos'],
   ['issues', 'Con problemas'],
@@ -86,6 +114,7 @@ export default function Clients() {
   const [error, setError] = useState('');
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
+  const [closed, setClosed] = useState(() => new Set()); // grupos plegados
 
   const load = useCallback(() => {
     Promise.all([api('/ports'), api('/clients/overview')])
@@ -101,10 +130,9 @@ export default function Clients() {
   const rows = useMemo(() => (ports || []).map((p) => ({ p, st: stateOf(p), ov: overview[p.id] })), [ports, overview]);
 
   const counts = useMemo(() => {
-    const issues = (r) => r.st.key === 'error' || r.st.key === 'silent' || r.p.openIncidents > 0;
     return {
       all: rows.length,
-      issues: rows.filter(issues).length,
+      issues: rows.filter(isIssue).length,
       ok: rows.filter((r) => r.st.key === 'ok' || r.st.key === 'waiting').length,
       off: rows.filter((r) => r.st.key === 'off').length,
       incidents: rows.reduce((n, r) => n + (r.p.openIncidents || 0), 0),
@@ -116,7 +144,7 @@ export default function Clients() {
     return rows
       .filter((r) => {
         if (t && !`${r.p.clientName} ${r.p.port}`.toLowerCase().includes(t)) return false;
-        if (filter === 'issues') return r.st.key === 'error' || r.st.key === 'silent' || r.p.openIncidents > 0;
+        if (filter === 'issues') return isIssue(r);
         if (filter === 'ok') return r.st.key === 'ok' || r.st.key === 'waiting';
         if (filter === 'off') return r.st.key === 'off';
         return true;
@@ -128,6 +156,19 @@ export default function Clients() {
         return ra - rb || a.p.clientName.localeCompare(b.p.clientName, 'es');
       });
   }, [rows, q, filter]);
+
+  // Los clientes con el mismo prefijo ("FONDESURCO - …") se muestran juntos; un grupo va donde está su sede más urgente.
+  // Los clientes sueltos seguidos comparten una misma grilla.
+  const blocks = useMemo(() => {
+    const out = [];
+    groupClients(shown, (r) => r.p.clientName, rows).forEach((e) => {
+      if (e.group) out.push(e);
+      else if (out.length && out[out.length - 1].singles) out[out.length - 1].singles.push(e.item);
+      else out.push({ singles: [e.item] });
+    });
+    return out;
+  }, [shown, rows]);
+  const toggleGroup = (g) => setClosed((s) => { const n = new Set(s); if (n.has(g)) n.delete(g); else n.add(g); return n; });
 
   const manage = can('ports.manage');
 
@@ -180,8 +221,14 @@ export default function Clients() {
           {shown.length === 0 ? (
             <div className="panel"><Empty icon={Search} title="Ningún cliente coincide" action={<button type="button" className="btn" onClick={() => { setQ(''); setFilter('all'); }}>Quitar filtros</button>}>Prueba con otro nombre o estado.</Empty></div>
           ) : (
-            <div className="client-grid">
-              {shown.map((r) => <ClientCard key={r.p.id} p={r.p} ov={r.ov} can={can} />)}
+            <div className="client-blocks">
+              {blocks.map((b) => (b.group ? (
+                <GroupSection key={`g:${b.group}`} name={b.group} items={b.items} can={can} open={!closed.has(b.group)} onToggle={() => toggleGroup(b.group)} />
+              ) : (
+                <div key={`s:${b.singles[0].p.id}`} className="client-grid">
+                  {b.singles.map((r) => <ClientCard key={r.p.id} p={r.p} ov={r.ov} can={can} />)}
+                </div>
+              )))}
             </div>
           )}
         </>

@@ -352,7 +352,7 @@ i.seg { width: 10px; height: 10px; border-radius: 3px; }
 .client-card--silent { border-left: 4px solid #d9a91a; }
 .client-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .client-card__title { min-width: 0; }
-.client-card__title h2 { font-size: 1.1rem; overflow-wrap: anywhere; }
+.client-card__title h2, .client-card__title h3 { font-size: 1.1rem; overflow-wrap: anywhere; }
 .client-card__link { color: inherit; text-decoration: none; }
 .client-card__link::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-m); } /* toda la tarjeta es el enlace */
 .client-card__link:focus-visible { box-shadow: none; }
@@ -379,3 +379,18 @@ i.seg { width: 10px; height: 10px; border-radius: 3px; }
 .import-activate { align-self: end; }
 .import-preview .table-wrap { max-height: 280px; overflow-y: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: var(--radius-s); }
 .import-preview .badge { white-space: normal; }
+
+/* Clientes agrupados (sedes de un mismo cliente) */
+.client-blocks { display: flex; flex-direction: column; gap: 22px; }
+.client-group { display: flex; flex-direction: column; gap: 12px; }
+.client-group__head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%;
+  padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-m);
+  font: inherit; color: var(--text); text-align: left; cursor: pointer;
+}
+.client-group__head:hover { border-color: var(--accent); }
+.client-group.has-issues .client-group__head { border-left: 4px solid var(--crit); }
+.client-group__head h2 { font-size: 1.05rem; }
+.client-group__chev { flex: none; color: var(--text-dim); transition: transform 0.15s; }
+.client-group__head[aria-expanded="true"] .client-group__chev { transform: rotate(90deg); }
+.client-group__stats { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }

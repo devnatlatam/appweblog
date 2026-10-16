@@ -109,6 +109,17 @@
 
 .nav__count--info { background: var(--accent); color: var(--on-accent); }
 
+/* Grupo de clientes plegable (sedes de un mismo cliente) */
+.nav__toggle { width: 100%; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; }
+.nav__toggle .nav__sub { margin-right: -4px; }
+.nav__chev { flex: none; color: var(--ink-text-dim); transition: transform 0.15s; }
+.nav__toggle[aria-expanded="true"] .nav__chev { transform: rotate(90deg); }
+.nav__toggle.has-active[aria-expanded="false"] { background: var(--ink-2); color: #fff; }
+.nav__children { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 6px 21px; padding-left: 8px; border-left: 1px solid var(--ink-3); }
+.nav__link--child { min-height: 34px; padding: 6px 10px; gap: 8px; font-size: 0.875rem; font-weight: 450; }
+.nav__link--child .dot { width: 7px; height: 7px; margin: 0 2px; }
+.nav__link--child.is-active::before { left: -10px; top: 6px; bottom: 6px; border-radius: 3px; } /* resalta la línea del árbol */
+
 /* El bloque del usuario abre "Mi cuenta" */
 button.me { width: 100%; background: none; border: 0; text-align: left; color: inherit; border-radius: var(--radius-s); cursor: pointer; }
 button.me:hover { background: var(--ink-2); }
