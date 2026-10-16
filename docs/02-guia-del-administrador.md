@@ -40,6 +40,16 @@ Reglas del puerto:
 
 > **Sobre "Aceptar solo desde estas IP".** Úsalo con cuidado. Un router puede **cambiar de IP pública**, por ejemplo al pasar a un enlace de respaldo como Starlink. Si limitas por IP, **sus logs quedan bloqueados justo cuando falla el enlace principal**, que es cuando más los necesitas. El sistema avisa con un evento "Nueva IP de origen" cuando esto pasa. Si dudas, déjalo vacío.
 
+### Crear muchos clientes a la vez (CSV)
+
+*Importar CSV* sirve para dar de alta todas las sedes de un cliente de una vez.
+
+1. Prepara un archivo con dos columnas, **nombre** y **puerto**, una fila por cliente (el botón *Descargar plantilla* da un ejemplo). En Excel: *Guardar como → CSV*. Se acepta separado por coma o por punto y coma, y con o sin fila de títulos.
+2. Elige el archivo. Aparece una vista previa con cada fila marcada como *Nuevo* o con su problema (puerto repetido en el archivo, puerto que ya usa otro cliente, falta el puerto, fuera de rango…).
+3. Elige el protocolo (el mismo para todos) y si se encienden ahora, y pulsa *Crear*.
+
+Es **todo o nada**: si alguna fila tiene un problema no se crea ninguna, así que corrige el archivo y vuelve a elegirlo. También se acepta el formato de tres columnas **Cliente, Sede, Puerto**: crea clientes llamados "Cliente - Sede", y si la columna Cliente viene vacía (celda combinada) repite la de la fila anterior.
+
 ### Encender y apagar
 
 Con el interruptor del cliente (lo pueden usar administradores y **operadores**).

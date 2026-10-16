@@ -128,6 +128,87 @@ router.post('/ports', guard('ports.manage'), async (req, res) => {
   }
 });
 
+// Importación masiva: crea muchos clientes de una vez (por ejemplo, las sedes copiadas de una hoja de cálculo).
+// Todo o nada: si una fila tiene un problema no se crea ninguna, y se devuelve qué fila falló.
+const IMPORT_MAX = 500;
+
+router.post('/ports/import', guard('ports.manage'), async (req, res) => {
+  const b = req.body || {};
+  if (!['udp', 'tcp'].includes(b.protocol)) return res.status(400).json({ error: 'Elige el protocolo: UDP o TCP.' });
+  if (!Array.isArray(b.items) || !b.items.length) return res.status(400).json({ error: 'No hay filas para importar.' });
+  if (b.items.length > IMPORT_MAX) return res.status(400).json({ error: `Se pueden importar hasta ${IMPORT_MAX} clientes a la vez.` });
+
+  const problems = [];
+  const values = [];
+  const seen = new Map();
+  b.items.forEach((it, row) => {
+    const p = parseBody({ ...(it || {}), protocol: b.protocol });
+    if (p.error) return problems.push({ row, error: p.error });
+    if (seen.has(p.value.port)) return problems.push({ row, error: `El puerto ${p.value.port} se repite en la lista.` });
+    seen.set(p.value.port, row);
+    values.push(p.value);
+  });
+  const { rows: taken } = await pool.query(
+    'SELECT client_name, port_number FROM clients_ports WHERE protocol = $1 AND port_number = ANY($2::int[])',
+    [b.protocol, [...seen.keys()]]
+  );
+  taken.forEach((t) => problems.push({ row: seen.get(t.port_number), error: `El puerto ${t.port_number} ya es de “${t.client_name}”.` }));
+  if (problems.length) {
+    problems.sort((a, c) => a.row - c.row);
+    return res.status(400).json({ error: `Hay ${problems.length} fila${problems.length === 1 ? '' : 's'} con problemas. No se creó ningún cliente.`, problems });
+  }
+
+  const client = await pool.connect();
+  let created;
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `INSERT INTO clients_ports (client_name, port_number, protocol, allowed_ips, created_by)
+       SELECT v.name, v.port, $3, CASE WHEN v.ips = '' THEN NULL ELSE string_to_array(v.ips, ',') END, $4
+       FROM unnest($1::text[], $2::int[], $5::text[]) AS v(name, port, ips)
+       RETURNING *`,
+      [values.map((v) => v.clientName), values.map((v) => v.port), b.protocol, req.user.id, values.map((v) => (v.allowedIps || []).join(','))]
+    );
+    await client.query('COMMIT');
+    created = rows;
+  } catch (e) {
+    await client.query('ROLLBACK');
+    if (e.code === '23505') return res.status(409).json({ error: 'Otro usuario acaba de ocupar uno de esos puertos. Revisa la lista y vuelve a intentar.' });
+    throw e;
+  } finally {
+    client.release();
+  }
+  await audit(req.user.id, 'port.import', { count: created.length, protocol: b.protocol, ports: created.map((r) => r.port_number) });
+
+  // "Encender ahora": se abren todos en la aplicación y el firewall se sincroniza una sola vez al final.
+  const warnings = [];
+  if (b.activate === true) {
+    const opened = [];
+    for (const row of created) {
+      try {
+        await collector.openPort(row);
+        opened.push(row.id);
+      } catch (e) {
+        warnings.push(`${row.client_name} (${row.port_number}): ${e.message}`);
+      }
+    }
+    if (opened.length) {
+      await pool.query('UPDATE clients_ports SET is_active = TRUE, activated_at = now() WHERE id = ANY($1::int[])', [opened]);
+      try {
+        await firewall.sync();
+        await audit(req.user.id, 'port.on', { ids: opened, via: 'import' });
+      } catch (e) {
+        opened.forEach((id) => collector.closePort(id));
+        await pool.query('UPDATE clients_ports SET is_active = FALSE WHERE id = ANY($1::int[])', [opened]);
+        firewall.sync().catch(() => {});
+        warnings.push(`Los clientes se crearon, pero quedaron apagados: no se pudieron abrir en el firewall. ${e.message}`);
+      }
+    }
+  }
+  const { rows: final } = await pool.query('SELECT * FROM clients_ports WHERE id = ANY($1::int[]) ORDER BY port_number', [created.map((r) => r.id)]);
+  res.status(201).json({ ports: final.map((r) => shapePort(r, { events24h: 0 })), warnings });
+});
+
 router.patch('/ports/:id', guard('ports.manage'), async (req, res) => {
   const { rows: cur } = await pool.query('SELECT * FROM clients_ports WHERE id = $1', [Number(req.params.id) || 0]);
   const row = cur[0];

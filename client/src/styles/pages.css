@@ -372,3 +372,10 @@ i.seg { width: 10px; height: 10px; border-radius: 3px; }
 
 .bars__link { color: var(--text); text-decoration: none; }
 .bars__link:hover { color: var(--accent); text-decoration: underline; }
+
+/* Importar clientes desde CSV */
+.import-file { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.import-file .btn { cursor: pointer; }
+.import-activate { align-self: end; }
+.import-preview .table-wrap { max-height: 280px; overflow-y: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: var(--radius-s); }
+.import-preview .badge { white-space: normal; }

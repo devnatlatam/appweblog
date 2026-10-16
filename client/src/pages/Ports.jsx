@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Cable, TriangleAlert } from 'lucide-react';
+import { Plus, Pencil, Trash2, Cable, TriangleAlert, Upload } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -88,6 +88,180 @@ function PortForm({ port, onClose, onSaved, firewallManaged }) {
   );
 }
 
+// Convierte un CSV (separado por coma, punto y coma o tabulación) en filas { name, port }.
+// Columnas: Nombre | Puerto, o Cliente | Sede | Puerto. El puerto es la última celda numérica.
+// Si la columna Cliente viene vacía (celda combinada en Excel), se repite el cliente de la fila anterior.
+// La primera fila sin número se toma como títulos; cualquier otra fila sin puerto se devuelve con port = null.
+function splitCells(line, sep) {
+  const cells = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') quoted = false; else cur += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === sep) { cells.push(cur.trim()); cur = ''; } else cur += ch;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+function parseSheet(text) {
+  const lines = text.split(/\r?\n/);
+  const first = lines.find((l) => l.trim()) || '';
+  const sep = first.includes('\t') ? '\t' : first.includes(';') ? ';' : ',';
+  const out = [];
+  let lastClient = '';
+  let seenRow = false;
+  lines.forEach((line, i) => {
+    if (!line.trim()) return;
+    const cells = splitCells(line, sep);
+    while (cells.length && !cells[cells.length - 1]) cells.pop();
+    let pi = -1;
+    for (let k = cells.length - 1; k >= 0; k--) if (/^\d+$/.test(cells[k])) { pi = k; break; }
+    if (pi === -1 && !seenRow) { seenRow = true; return; } // fila de títulos
+    seenRow = true;
+    const before = pi === -1 ? cells : cells.slice(0, pi);
+    let name;
+    if (before.length >= 2) {
+      if (before[0]) lastClient = before[0];
+      name = [lastClient, ...before.slice(1).filter(Boolean)].filter(Boolean).join(' - ');
+    } else {
+      name = before[0] || '';
+    }
+    out.push({ line: i + 1, name, port: pi === -1 ? null : Number(cells[pi]) });
+  });
+  return out;
+}
+
+function ImportDialog({ existing, onClose, onDone, firewallManaged }) {
+  const toast = useToast();
+  const [text, setText] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [protocol, setProtocol] = useState('udp');
+  const [activate, setActivate] = useState(true);
+  const [serverProblems, setServerProblems] = useState({});
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const rows = parseSheet(text);
+  const taken = new Map(existing.filter((p) => p.protocol === protocol).map((p) => [p.port, p.clientName]));
+  const count = {};
+  rows.forEach((r) => { count[r.port] = (count[r.port] || 0) + 1; });
+  const checked = rows.map((r, i) => {
+    let problem = serverProblems[i] || '';
+    if (!r.name) problem = 'Falta el nombre.';
+    else if (r.name.length > 80) problem = 'El nombre pasa de 80 caracteres.';
+    else if (r.port === null) problem = 'Falta el puerto.';
+    else if (r.port < 1 || r.port > 65535) problem = 'Puerto fuera de rango (1 a 65535).';
+    else if (count[r.port] > 1) problem = `El puerto ${r.port} se repite en la lista.`;
+    else if (taken.has(r.port)) problem = `Ya es de “${taken.get(r.port)}”.`;
+    return { ...r, problem };
+  });
+  const bad = checked.filter((r) => r.problem).length;
+
+  const loadFile = (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    // Excel guarda los CSV en Windows-1252 si no se elige "UTF-8": si no es UTF-8 válido, se lee así (tildes y ñ)
+    f.arrayBuffer().then((buf) => {
+      let t;
+      try { t = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (err) { t = new TextDecoder('windows-1252').decode(buf); }
+      setText(t.replace(/^﻿/, ''));
+      setFileName(f.name);
+      setServerProblems({});
+      setError('');
+    });
+  };
+  const downloadTemplate = () => {
+    const url = URL.createObjectURL(new Blob(['﻿nombre;puerto\nFONDESURCO - AREQUIPA PRINCIPAL;515\nFONDESURCO - ACARI;516\n'], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla-clientes.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const submit = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const d = await api('/ports/import', { method: 'POST', body: { protocol, activate, items: rows.map((r) => ({ clientName: r.name, port: r.port })) } });
+      d.warnings.forEach((w) => toast(w, 'error'));
+      toast(`${d.ports.length} clientes creados${activate && !d.warnings.length ? ' y encendidos' : ''}`);
+      onDone(d.ports);
+    } catch (e) {
+      setError(e.message);
+      if (e.problems) setServerProblems(Object.fromEntries(e.problems.map((p) => [p.row, p.error])));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog title="Importar clientes" variant="modal" onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn" onClick={onClose}>Cancelar</button>
+          <button type="button" className="btn btn--primary" disabled={!rows.length || bad > 0 || busy} onClick={submit}>
+            {rows.length ? `Crear ${rows.length} cliente${rows.length === 1 ? '' : 's'}` : 'Crear clientes'}
+          </button>
+        </>
+      }>
+      <div className="dialog-body import-dialog">
+        {error && <div className="form-error" role="alert">{error}</div>}
+        <div className="field">
+          <span className="label">Archivo CSV</span>
+          <div className="import-file">
+            <label className="btn">
+              <Upload size={18} /> {fileName ? 'Elegir otro archivo' : 'Elegir archivo CSV'}
+              <input type="file" accept=".csv,.txt" hidden onChange={loadFile} />
+            </label>
+            <span className="cell-sub">{fileName || 'Ningún archivo elegido'}</span>
+          </div>
+          <span className="hint">
+            Dos columnas: <strong>nombre</strong> y <strong>puerto</strong>, una fila por cliente. La fila de títulos se ignora. En Excel: <em>Guardar como → CSV</em>.{' '}
+            <button type="button" className="link-btn" onClick={downloadTemplate}>Descargar plantilla</button>
+          </span>
+        </div>
+        <div className="form-grid">
+          <div className="field">
+            <label htmlFor="ipr">Protocolo de todos</label>
+            <select id="ipr" className="select" value={protocol} onChange={(e) => { setProtocol(e.target.value); setServerProblems({}); }}>
+              <option value="udp">UDP</option>
+              <option value="tcp">TCP</option>
+            </select>
+          </div>
+          <label className="check import-activate">
+            <input type="checkbox" checked={activate} onChange={(e) => setActivate(e.target.checked)} />
+            <span>Encender ahora{firewallManaged ? ' (abre los puertos en el firewall)' : ''}</span>
+          </label>
+        </div>
+        {rows.length > 0 && (
+          <div className="import-preview">
+            <p className="hint">{rows.length} fila{rows.length === 1 ? '' : 's'}{bad ? ` · ${bad} con problemas: corrígelas antes de crear` : ' · todo listo'}</p>
+            <div className="table-wrap">
+              <table className="table">
+                <thead><tr><th>Cliente</th><th>Puerto</th><th>Estado</th></tr></thead>
+                <tbody>
+                  {checked.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.name || <span className="cell-sub">Fila {r.line}</span>}</td>
+                      <td className="mono">{r.port}</td>
+                      <td>{r.problem ? <span className="badge badge--error">{r.problem}</span> : <span className="badge badge--ok">Nuevo</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </Dialog>
+  );
+}
+
 export default function Ports() {
   const { can } = useAuth();
   const toast = useToast();
@@ -98,6 +272,7 @@ export default function Ports() {
   const [error, setError] = useState('');
   const [form, setForm] = useState(null); // null | 'new' | port
   const [confirmDel, setConfirmDel] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const location = useLocation();
   useEffect(() => {
@@ -149,7 +324,12 @@ export default function Ports() {
   return (
     <>
       <PageHead title="Clientes y puertos"
-        actions={canManage && <button type="button" className="btn btn--primary" onClick={() => setForm('new')}><Plus size={18} /> Nuevo cliente</button>}>
+        actions={canManage && (
+          <>
+            <button type="button" className="btn" onClick={() => setImporting(true)}><Upload size={18} /> Importar CSV</button>
+            <button type="button" className="btn btn--primary" onClick={() => setForm('new')}><Plus size={18} /> Nuevo cliente</button>
+          </>
+        )}>
         Cada cliente envía sus logs a un puerto propio, y ese puerto lo identifica. Entra a un cliente para ver solo sus logs. Encender un puerto lo abre{firewallManaged ? ' (también en el firewall del servidor)' : ''}; apagarlo lo cierra: no se recibe ni se guarda nada de ese cliente.
         {!canToggle && ' Tu rol puede ver el estado, pero no cambiarlo.'}
       </PageHead>
@@ -210,6 +390,14 @@ export default function Ports() {
       </section>
 
       {form && <PortForm port={form === 'new' ? null : form} onClose={() => setForm(null)} onSaved={saved} firewallManaged={firewallManaged} />}
+      {importing && (
+        <ImportDialog existing={ports || []} firewallManaged={firewallManaged} onClose={() => setImporting(false)}
+          onDone={(list) => {
+            setPorts((l) => [...(l || []), ...list].sort((a, b) => a.port - b.port || a.protocol.localeCompare(b.protocol)));
+            setImporting(false);
+            changed();
+          }} />
+      )}
       {confirmDel && (
         <Dialog title="¿Eliminar este cliente?" variant="modal" onClose={() => setConfirmDel(null)}
           footer={

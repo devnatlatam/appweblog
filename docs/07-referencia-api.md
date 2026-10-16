@@ -47,6 +47,7 @@ Objeto `port`: `{ id, clientName, port, protocol, isActive, allowedIps[], lastSe
 |---|---|---|---|
 | `GET /ports` | `ports.view` | — | `{ ports[], firewallManaged }` |
 | `POST /ports` | `ports.manage` | `{ clientName, port, protocol, allowedIps?, activate? }` | `201 { port, warning }` |
+| `POST /ports/import` | `ports.manage` | `{ protocol, activate?, items: [{ clientName, port, allowedIps? }] }` (hasta 500) | `201 { ports[], warnings[] }`. Todo o nada: con errores responde `400 { error, problems: [{ row, error }] }` y no crea ninguno |
 | `PATCH /ports/:id` | `ports.manage` | `{ clientName?, port?, protocol?, allowedIps? }` | `{ port }` |
 | `POST /ports/:id/toggle` | `ports.toggle` | `{ active: true \| false }` | `{ port, warning }` |
 | `DELETE /ports/:id` | `ports.manage` | — | `{ ok, warning }` |

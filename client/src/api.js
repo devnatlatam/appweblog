@@ -28,7 +28,9 @@ export async function api(path, { method = 'GET', body } = {}) {
   if (!res.ok) {
     // 401 en una pantalla distinta al login = la sesión venció
     if (res.status === 401 && token && path !== '/auth/login') onUnauthorized();
-    throw new Error(data.error || 'Ocurrió un error inesperado.');
+    const err = new Error(data.error || 'Ocurrió un error inesperado.');
+    if (data.problems) err.problems = data.problems; // detalle por fila (importación de clientes)
+    throw err;
   }
   return data;
 }
