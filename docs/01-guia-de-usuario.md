@@ -120,9 +120,9 @@ Cada tarjeta muestra:
 
 Arriba hay un resumen (clientes, recibiendo, con problemas, incidentes abiertos), un buscador por nombre o puerto y filtros *Todos / Con problemas / Recibiendo / Apagados*. Los que necesitan atención salen primero. La pantalla se actualiza sola cada 15 segundos.
 
-**Clientes con varias sedes.** Si dos o más clientes comparten el comienzo del nombre antes de " - " (por ejemplo *FONDESURCO - ACARI* y *FONDESURCO - APLAO*), se muestran juntos en un grupo *FONDESURCO*:
-- en esta pantalla, como una sección plegable con su resumen (cuántas sedes reciben, cuántas tienen problemas, cuántas están apagadas), y cada tarjeta muestra solo el nombre de la sede;
-- en el menú lateral, como una sola entrada con el estado general (rojo si alguna sede tiene error, verde si alguna recibe) y cuántas sedes están recibiendo, por ejemplo *12/27*. Al tocarla se despliegan las sedes. El menú recuerda qué grupos dejaste abiertos y abre solo el del cliente que estás viendo.
+**Clientes con varias sedes.** Si dos o más clientes comparten el comienzo del nombre antes de " - " (por ejemplo *FONDESURCO - ACARI* y *FONDESURCO - APLAO*), se muestran juntos en una sección plegable *FONDESURCO* con su resumen: cuántas sedes reciben, cuántas tienen problemas y cuántas están apagadas. Cada tarjeta muestra solo el nombre de la sede.
+
+El menú lateral no lista los clientes uno por uno: *Todos los clientes* lleva siempre a esta pantalla, y se queda marcado mientras estás dentro de un cliente.
 
 Los administradores ven además *Nuevo cliente* y *Gestionar clientes*, donde se crean, editan, eliminan y se encienden o apagan los puertos (los operadores también pueden encender y apagar).
 

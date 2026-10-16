@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive, Mail, ChevronsUpDown, LayoutGrid, SlidersHorizontal,
-  Menu, Sun, Moon, LogOut, Activity, Pause, Play, Radio, ListChecks, ChevronRight,
+  Menu, Sun, Moon, LogOut, Activity, Pause, Play, Radio, ListChecks,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -10,36 +10,13 @@ import { EventsProvider, useEvents } from '../context/EventsContext';
 import { ROLES } from '../data/roles';
 import AccountDialog from './AccountDialog';
 import { api } from '../api';
-import { groupClients } from '../data/clientGroups';
 
-const clientState = (c) => (c.listening ? 'on' : c.isActive ? 'err' : 'off');
-// Estado de un grupo: rojo si alguna sede tiene error, verde si alguna recibe, apagado si ninguna
-const groupState = (states) => (states.includes('err') ? 'err' : states.includes('on') ? 'on' : 'off');
-
-const GROUPS_KEY = 'omadalogs.navGroups';
-const readOpenGroups = () => {
-  try { return new Set(JSON.parse(localStorage.getItem(GROUPS_KEY)) || []); } catch (e) { return new Set(); }
-};
-
-// El menú arma una entrada por cada cliente: cada uno tiene su propio espacio con sus logs.
-// Los clientes con el mismo prefijo ("FONDESURCO - …") van juntos en un grupo plegable.
-function buildNav(clients, can) {
+// Los clientes no se listan en el menú: "Todos los clientes" lleva a la vista general, donde están agrupados
+function buildNav(can) {
   const nav = [{ to: '/', label: 'Resumen general', icon: LayoutDashboard, perm: 'dashboard.view', end: true, badge: true, tab: true }];
   if (can('ports.view')) {
     nav.push({ group: 'Clientes' });
-    nav.push({ to: '/clientes', label: 'Todos los clientes', icon: LayoutGrid, perm: 'ports.view', end: true, tab: true });
-    groupClients(clients).forEach((e) => {
-      if (!e.group) {
-        nav.push({ to: `/clientes/${e.item.id}`, label: e.label, sub: `:${e.item.port}`, dot: clientState(e.item), perm: 'ports.view' });
-        return;
-      }
-      const states = e.items.map((x) => clientState(x.item));
-      nav.push({
-        clientGroup: e.group, perm: 'ports.view', dot: groupState(states),
-        receiving: states.filter((s) => s === 'on').length,
-        items: e.items.map((x) => ({ to: `/clientes/${x.item.id}`, label: x.label, sub: `:${x.item.port}`, dot: clientState(x.item) })),
-      });
-    });
+    nav.push({ to: '/clientes', label: 'Todos los clientes', icon: LayoutGrid, perm: 'ports.view', tab: true });
     nav.push({ to: '/puertos', label: can('ports.manage') ? 'Gestionar clientes' : 'Clientes y puertos', icon: Cable, perm: 'ports.view' });
   }
   nav.push({ to: '/alertas', label: 'Alertas', icon: BellRing, perm: 'alerts.view', tab: true });
@@ -67,19 +44,7 @@ function Shell() {
   const [open, setOpen] = useState(false);
   const [account, setAccount] = useState(false);
   const location = useLocation();
-  const [clients, setClients] = useState([]);
   const [typesPending, setTypesPending] = useState(0);
-
-  const loadClients = useCallback(() => {
-    if (!can('ports.view')) return;
-    api('/ports').then((d) => setClients(d.ports)).catch(() => {});
-  }, [can]);
-  useEffect(() => {
-    loadClients();
-    const t = setInterval(loadClients, 15000);
-    window.addEventListener('clients-changed', loadClients);
-    return () => { clearInterval(t); window.removeEventListener('clients-changed', loadClients); };
-  }, [loadClients]);
 
   const loadTypes = useCallback(() => {
     if (!can('types.review')) return;
@@ -99,23 +64,7 @@ function Shell() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // Grupos de clientes desplegados en el menú (se recuerdan en este navegador)
-  const [openGroups, setOpenGroups] = useState(readOpenGroups);
-  const toggleGroup = (name) => setOpenGroups((s) => {
-    const next = new Set(s);
-    if (next.has(name)) next.delete(name); else next.add(name);
-    try { localStorage.setItem(GROUPS_KEY, JSON.stringify([...next])); } catch (e) { /* sin almacenamiento */ }
-    return next;
-  });
-
-  const items = buildNav(clients, can).filter((n) => n.group || can(n.perm));
-  // El grupo del cliente que se está viendo se despliega solo
-  const inGroup = (n) => n.items.some((c) => location.pathname === c.to || location.pathname.startsWith(`${c.to}/`));
-  useEffect(() => {
-    const g = items.find((n) => n.clientGroup && inGroup(n));
-    if (g && !openGroups.has(g.clientGroup)) setOpenGroups((s) => new Set(s).add(g.clientGroup));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, clients]);
+  const items = buildNav(can).filter((n) => n.group || can(n.perm));
   // Oculta el encabezado de grupo si no queda ningún enlace debajo
   const visible = items.filter((n, i) => !n.group || (items[i + 1] && !items[i + 1].group));
   const tabs = items.filter((n) => n.tab);
@@ -132,28 +81,6 @@ function Shell() {
           {visible.map((n) =>
             n.group ? (
               <div key={n.group} className="nav__group">{n.group}</div>
-            ) : n.clientGroup ? (
-              <div key={`g:${n.clientGroup}`} className="nav__cluster">
-                <button type="button" className={`nav__link nav__toggle${inGroup(n) ? ' has-active' : ''}`}
-                  aria-expanded={openGroups.has(n.clientGroup)} onClick={() => toggleGroup(n.clientGroup)}
-                  title={`${n.clientGroup}: ${n.receiving} de ${n.items.length} sedes recibiendo`}>
-                  <span className={`dot dot--${n.dot}`} aria-hidden="true" />
-                  <span className="nav__label">{n.clientGroup}</span>
-                  <span className="nav__sub">{n.receiving}/{n.items.length}</span>
-                  <ChevronRight size={16} aria-hidden="true" className="nav__chev" />
-                </button>
-                {openGroups.has(n.clientGroup) && (
-                  <div className="nav__children">
-                    {n.items.map((c) => (
-                      <NavLink key={c.to} to={c.to} className={({ isActive }) => `nav__link nav__link--child${isActive ? ' is-active' : ''}`}>
-                        <span className={`dot dot--${c.dot}`} aria-hidden="true" />
-                        <span className="nav__label">{c.label}</span>
-                        <span className="nav__sub">{c.sub}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
             ) : (
               <NavLink
                 key={n.to}
@@ -161,9 +88,8 @@ function Shell() {
                 end={n.end}
                 className={({ isActive }) => `nav__link${isActive ? ' is-active' : ''}`}
               >
-                {n.dot ? <span className={`dot dot--${n.dot}`} aria-hidden="true" /> : <n.icon size={19} aria-hidden="true" />}
+                <n.icon size={19} aria-hidden="true" />
                 <span className="nav__label">{n.label}</span>
-                {n.sub && <span className="nav__sub">{n.sub}</span>}
                 {n.typesBadge && typesPending > 0 && (
                   <span className="nav__count nav__count--info" aria-label={`${typesPending} tipos de log por aprobar`}>{typesPending}</span>
                 )}
