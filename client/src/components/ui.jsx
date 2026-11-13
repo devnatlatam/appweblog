@@ -46,10 +46,14 @@ export function Switch({ checked, onChange, label }) {
 // Panel lateral (escritorio) / hoja inferior (móvil) o modal centrado.
 export function Dialog({ title, onClose, children, footer, variant = 'drawer' }) {
   const ref = useRef(null);
+  // Siempre el onClose más reciente, sin reiniciar el efecto: si dependiera de él, cada tecla escrita dentro del diálogo
+  // (que vuelve a crear la función) devolvería el foco al propio diálogo y sacaría al usuario del campo.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     const prev = document.activeElement;
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => { if (e.key === 'Escape') closeRef.current(); };
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     if (ref.current) ref.current.focus();
@@ -58,7 +62,7 @@ export function Dialog({ title, onClose, children, footer, variant = 'drawer' })
       document.body.style.overflow = '';
       if (prev && prev.focus) prev.focus();
     };
-  }, [onClose]);
+  }, []);
 
   const Box = variant === 'modal' ? 'modal' : 'drawer';
   return (
