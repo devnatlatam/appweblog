@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ScrollText, Cable, BellRing, Users, ShieldCheck, HardDrive, Mail, ChevronsUpDown, LayoutGrid, SlidersHorizontal,
-  Menu, Sun, Moon, LogOut, Activity, Pause, Play, Radio, ListChecks,
+  Menu, Sun, Moon, LogOut, Activity, Pause, Play, Radio, ListChecks, Globe2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -18,6 +18,7 @@ function buildNav(can) {
     nav.push({ group: 'Clientes' });
     nav.push({ to: '/clientes', label: 'Todos los clientes', icon: LayoutGrid, perm: 'ports.view', tab: true });
     nav.push({ to: '/puertos', label: can('ports.manage') ? 'Gestionar clientes' : 'Clientes y puertos', icon: Cable, perm: 'ports.view' });
+    nav.push({ to: '/geobloqueo', label: 'Geobloqueo', icon: Globe2, perm: 'ports.view' });
   }
   nav.push({ to: '/alertas', label: 'Alertas', icon: BellRing, perm: 'alerts.view', tab: true });
   nav.push({ to: '/admin/por-aprobar', label: 'Por aprobar', icon: ListChecks, perm: 'types.review', typesBadge: true });
@@ -31,7 +32,7 @@ function buildNav(can) {
 }
 
 const TITLES = {
-  '/': 'Resumen general', '/clientes': 'Clientes', '/puertos': 'Clientes y puertos', '/alertas': 'Alertas', '/admin/por-aprobar': 'Por aprobar', '/admin/severidad': 'Severidad',
+  '/': 'Resumen general', '/clientes': 'Clientes', '/puertos': 'Clientes y puertos', '/geobloqueo': 'Geobloqueo', '/alertas': 'Alertas', '/admin/por-aprobar': 'Por aprobar', '/admin/severidad': 'Severidad',
   '/admin/usuarios': 'Usuarios', '/admin/roles': 'Roles y permisos', '/admin/almacenamiento': 'Almacenamiento', '/admin/correo': 'Correo',
 };
 

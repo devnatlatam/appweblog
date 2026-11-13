@@ -9,6 +9,7 @@ import './styles/index.css';
 import './styles/layout.css';
 import './styles/components.css';
 import './styles/pages.css';
+import './styles/geo.css';
 
 ReactDOM.render(
   <React.StrictMode>

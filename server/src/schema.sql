@@ -177,3 +177,23 @@ CREATE TABLE IF NOT EXISTS severity_rules (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS severity_rules_uq ON severity_rules (module, COALESCE(client_id, 0), COALESCE(lower(match), ''));
+
+-- Selección de países permitidos para el geobloqueo. Cada cliente tiene un único enlace (token) para llenarla sin iniciar sesión.
+--   pending   = el enlace acepta una respuesta (o una nueva, si un administrador lo volvió a habilitar)
+--   submitted = ya respondió: el enlace queda en solo lectura hasta que un administrador lo habilite otra vez
+-- Al volver a habilitar se conserva la última respuesta para que el cliente la corrija en vez de empezar de cero.
+-- Cada envío queda además en audit_log (geo.submit) con la lista completa, así no se pierden las respuestas anteriores.
+CREATE TABLE IF NOT EXISTS geo_requests (
+  client_id    INTEGER PRIMARY KEY REFERENCES clients_ports(id) ON DELETE CASCADE,
+  token        TEXT NOT NULL UNIQUE,
+  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'submitted')),
+  countries    TEXT[],
+  contact      TEXT,
+  submitted_at TIMESTAMPTZ,
+  submitted_ip TEXT,
+  submissions  INTEGER NOT NULL DEFAULT 0,
+  reopened_at  TIMESTAMPTZ,
+  reopened_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);

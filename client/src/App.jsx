@@ -8,6 +8,8 @@ import ClientView from './pages/ClientView';
 import Clients from './pages/Clients';
 import Alerts from './pages/Alerts';
 import Ports from './pages/Ports';
+import Geo from './pages/Geo';
+import GeoForm from './pages/GeoForm';
 import Users from './pages/admin/Users';
 import Roles from './pages/admin/Roles';
 import Storage from './pages/admin/Storage';
@@ -38,6 +40,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      {/* Formulario del cliente: se abre con su enlace único, sin iniciar sesión */}
+      <Route path="/geo/:token" element={<GeoForm />} />
       <Route
         element={
           <Private>
@@ -51,7 +55,8 @@ export default function App() {
         <Route path="registros" element={<Navigate to="/clientes" replace />} />
         <Route path="en-vivo" element={<Navigate to="/clientes" replace />} />
         <Route path="puertos" element={<Guard perm="ports.view"><Ports /></Guard>} />
-        <Route path="alertas" element={<Guard perm="alerts.view"><Alerts /></Guard>} />
+        <Route path="geobloqueo" element={<Guard perm="ports.view"><Geo /></Guard>} />
+        <Route path="alertas"element={<Guard perm="alerts.view"><Alerts /></Guard>} />
         <Route path="admin/usuarios" element={<Guard perm="users.manage"><Users /></Guard>} />
         <Route path="admin/roles" element={<Guard perm="roles.manage"><Roles /></Guard>} />
         <Route path="admin/por-aprobar" element={<Guard perm="types.review"><Types /></Guard>} />

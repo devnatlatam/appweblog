@@ -192,6 +192,7 @@ app.use('/api', require('./severity-rules'));
 app.use('/api', require('./incidents-api'));
 app.use('/api', require('./settings-api'));
 app.use('/api', require('./alerts-api'));
+app.use('/api', require('./geo-api'));
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error(err);
