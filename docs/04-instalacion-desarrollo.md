@@ -1,6 +1,6 @@
 # Instalación para desarrollo
 
-Cómo levantar Omada Logs en tu equipo para probarlo o programar. Para instalarlo en un servidor, ve a [DESPLIEGUE.md](../DESPLIEGUE.md).
+Cómo levantar Logs en tu equipo para probarlo o programar. Para instalarlo en un servidor, ve a [DESPLIEGUE.md](../DESPLIEGUE.md).
 
 ## Requisitos
 

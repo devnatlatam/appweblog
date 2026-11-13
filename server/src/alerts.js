@@ -31,17 +31,17 @@ function alertMail(rule, c, type) {
   const title = resolved ? c.resolvedTitle : c.title;
   const lines = (resolved ? c.resolvedLines : c.lines) || [];
   const url = c.link ? link(c.link) : null;
-  const subject = `[Omada Logs] ${test ? 'PRUEBA — ' : ''}${resolved ? 'Resuelto — ' : ''}${c.clientName ? `${c.clientName}: ` : ''}${title}`;
+  const subject = `[Logs] ${test ? 'PRUEBA — ' : ''}${resolved ? 'Resuelto — ' : ''}${c.clientName ? `${c.clientName}: ` : ''}${title}`;
   const text = [
     test ? 'ESTE ES UN CORREO DE PRUEBA' : '', `${resolved ? 'Resuelto: ' : ''}${title}`, c.clientName ? `Cliente: ${c.clientName}` : '',
-    ...lines.map(([k, v]) => `${k}: ${v}`), url ? `\nVer en Omada Logs: ${url}` : '', `\nRegla: ${rule.name}`,
+    ...lines.map(([k, v]) => `${k}: ${v}`), url ? `\nVer en Logs: ${url}` : '', `\nRegla: ${rule.name}`,
   ].filter(Boolean).join('\n');
   const rows = lines.map(([k, v]) => `<tr><td style="padding:6px 12px;color:#52666a;width:140px;vertical-align:top">${esc(k)}</td><td style="padding:6px 12px">${esc(v)}</td></tr>`).join('');
   const html = layout({
     title: `${test ? '[PRUEBA] ' : ''}${resolved ? '✔ ' : ''}${title}`,
     body: `${c.clientName ? `<p style="margin:0 0 12px;color:#52666a">Cliente: <strong style="color:#14262a">${esc(c.clientName)}</strong></p>` : ''}
 ${rows ? `<table role="presentation" cellpadding="0" cellspacing="0" style="background:#f7f9f8;border:1px solid #dfe5e2;border-radius:6px;width:100%">${rows}</table>` : ''}
-${url ? button(url, 'Ver en Omada Logs') : ''}`,
+${url ? button(url, 'Ver en Logs') : ''}`,
     footer: `Regla: ${esc(rule.name)}. ${test ? 'Esto es solo una prueba; no hay ningún problema real.' : 'Recibes este aviso porque estás en la lista de esa regla.'}`,
   });
   return { subject, text, html };

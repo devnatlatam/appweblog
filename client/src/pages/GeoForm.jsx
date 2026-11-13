@@ -58,7 +58,7 @@ export default function GeoForm() {
       window.scrollTo({ top: 0 });
     } catch (e) {
       setFormError(e.message);
-      if (e.message.includes('ya fue enviada')) api(`/public/geo/${token}`).then(apply).catch(() => {});
+      if (e.message.includes('ya fue enviada')) api(`/public/geo/${token}`).then(apply).catch(() => { });
     } finally {
       setBusy(false);
     }
@@ -190,7 +190,7 @@ export default function GeoForm() {
 function Shell({ children }) {
   return (
     <div className="geo-page">
-      <div className="geo-brand"><span className="brand__mark"><Activity size={18} aria-hidden="true" /></span> Omada Logs</div>
+      <div className="geo-brand"><span className="brand__mark"><Activity size={18} aria-hidden="true" /></span> Logs</div>
       {children}
     </div>
   );

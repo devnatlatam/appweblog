@@ -1,4 +1,4 @@
-# Omada Logs
+# Logs
 
 Visor de **syslog en tiempo real** para equipos TP-Link Omada (routers y controlador). Recibe los logs directamente por puertos de red, los interpreta en lenguaje claro, detecta problemas con inicio y fin, y avisa por correo.
 

@@ -1,6 +1,6 @@
 # Seguridad
 
-Qué protege el sistema, cómo, y qué riesgos quedan. Para quien instala, administra o audita Omada Logs.
+Qué protege el sistema, cómo, y qué riesgos quedan. Para quien instala, administra o audita Logs.
 
 ## Roles y permisos
 

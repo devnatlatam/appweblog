@@ -1,6 +1,6 @@
 # Conectar equipos Omada
 
-Cómo hacer que un router o el controlador Omada envíen sus logs a un cliente de Omada Logs, y cómo comprobar que llegan.
+Cómo hacer que un router o el controlador Omada envíen sus logs a un cliente de Logs, y cómo comprobar que llegan.
 
 ## La idea
 
@@ -28,7 +28,7 @@ En Omada busca la opción de **servidor syslog remoto / registro remoto** (el no
 
 | Dato | Valor |
 |---|---|
-| Servidor / IP | La IP o dominio del servidor de Omada Logs |
+| Servidor / IP | La IP o dominio del servidor de Logs |
 | Puerto | El del cliente |
 | Protocolo | El mismo que elegiste en el cliente (UDP o TCP) |
 

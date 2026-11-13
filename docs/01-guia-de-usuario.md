@@ -1,6 +1,6 @@
 # Guía de usuario
 
-Para quien usa Omada Logs a diario para ver qué pasa en la red. Si además administras clientes, alertas o usuarios, sigue con la [guía del administrador](02-guia-del-administrador.md).
+Para quien usa Logs a diario para ver qué pasa en la red. Si además administras clientes, alertas o usuarios, sigue con la [guía del administrador](02-guia-del-administrador.md).
 
 ## Entrar
 

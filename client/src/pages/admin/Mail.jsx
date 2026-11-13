@@ -19,7 +19,7 @@ export default function Mail() {
   const [loadError, setLoadError] = useState('');
   const [hasPassword, setHasPassword] = useState(false);
   const [configured, setConfigured] = useState(false);
-  const [f, setF] = useState({ host: '', port: '587', security: 'starttls', user: '', password: '', fromName: 'Omada Logs', from: '', appUrl: '' });
+  const [f, setF] = useState({ host: '', port: '587', security: 'starttls', user: '', password: '', fromName: 'Logs', from: '', appUrl: '' });
   const [show, setShow] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState('');

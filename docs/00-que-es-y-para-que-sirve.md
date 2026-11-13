@@ -1,4 +1,4 @@
-# ¿Qué es Omada Logs y para qué sirve?
+# ¿Qué es Logs y para qué sirve?
 
 Esta página es para **todas las personas**, no hace falta saber de informática. Si solo vas a leer una página, que sea esta.
 
@@ -12,7 +12,7 @@ Los equipos de red (routers, firewalls, controladores TP-Link Omada) escriben to
 
 El problema: el log original es una avalancha de líneas técnicas, miles por hora, escritas para máquinas. Nadie puede leerlas a tiempo para reaccionar.
 
-## Qué hace Omada Logs
+## Qué hace Logs
 
 1. **Escucha** lo que cada equipo escribe en su diario.
 2. **Lo traduce** a frases claras: en vez de una línea técnica ves *"Internet WAN3 sin conexión"*, qué significa y qué hacer.

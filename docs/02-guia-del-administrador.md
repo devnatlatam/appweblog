@@ -1,6 +1,6 @@
 # Guía del administrador
 
-Para quien configura y mantiene Omada Logs: crea clientes, administra usuarios, configura el correo y las alertas, y decide cuánto tiempo se guardan los logs. Requiere el rol **Administrador** o **Superadmin**.
+Para quien configura y mantiene Logs: crea clientes, administra usuarios, configura el correo y las alertas, y decide cuánto tiempo se guardan los logs. Requiere el rol **Administrador** o **Superadmin**.
 
 Todo esto se hace **desde la web**. Lo único que se hace en la terminal es crear el primer usuario y, si fuera necesario, recuperar el acceso ([Operación](11-operacion.md#recuperar-el-acceso)).
 

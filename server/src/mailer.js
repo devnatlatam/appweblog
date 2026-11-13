@@ -11,7 +11,7 @@ function getConfig(env = process.env) {
     security: SECURITY.includes(env.SMTP_SECURITY) ? env.SMTP_SECURITY : 'starttls',
     user: env.SMTP_USER || '',
     password: env.SMTP_PASSWORD || '',
-    fromName: env.SMTP_FROM_NAME || 'Omada Logs',
+    fromName: env.SMTP_FROM_NAME || 'Logs',
     from: (env.SMTP_FROM || '').trim(),
   };
 }

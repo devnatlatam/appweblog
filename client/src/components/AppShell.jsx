@@ -49,7 +49,7 @@ function Shell() {
 
   const loadTypes = useCallback(() => {
     if (!can('types.review')) return;
-    api('/types/summary').then((d) => setTypesPending(d.pending)).catch(() => {});
+    api('/types/summary').then((d) => setTypesPending(d.pending)).catch(() => { });
   }, [can]);
   useEffect(() => {
     loadTypes();
@@ -124,7 +124,7 @@ function Shell() {
           <button type="button" className="icon-btn menu-btn" onClick={() => setOpen(true)} aria-label="Abrir menú">
             <Menu size={22} />
           </button>
-          <span className="topbar__title">{location.pathname.startsWith('/clientes/') ? 'Cliente' : (TITLES[location.pathname] || 'Omada Logs')}</span>
+          <span className="topbar__title">{location.pathname.startsWith('/clientes/') ? 'Cliente' : (TITLES[location.pathname] || 'Logs')}</span>
           <span className="topbar__spacer" />
           <span className={`live${live ? '' : ' is-paused'}`}>
             <span className="live__dot" aria-hidden="true" />

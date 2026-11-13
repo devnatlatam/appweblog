@@ -108,8 +108,8 @@ Si cambias lo que mide una regla (tipo, parámetros o cliente), se borra su memo
 
 ## El correo
 
-- **Asunto:** `[Omada Logs] Cliente: Título`. Si es de resuelto: `[Omada Logs] Resuelto — Cliente: …`. Si es una prueba: `[Omada Logs] PRUEBA — …`.
-- **Cuerpo:** título, cliente, tabla de datos (tipo, desde cuándo, cuánto lleva…) y un botón *Ver en Omada Logs* **si `APP_URL` está configurada**. Pie con el nombre de la regla. Versión en texto plano incluida.
+- **Asunto:** `[Logs] Cliente: Título`. Si es de resuelto: `[Logs] Resuelto — Cliente: …`. Si es una prueba: `[Logs] PRUEBA — …`.
+- **Cuerpo:** título, cliente, tabla de datos (tipo, desde cuándo, cuánto lleva…) y un botón *Ver en Logs* **si `APP_URL` está configurada**. Pie con el nombre de la regla. Versión en texto plano incluida.
 - **Hora:** en la zona `APP_TIMEZONE`.
 - Todo texto que viene de los logs se **escapa** en el HTML.
 

@@ -38,7 +38,7 @@ function merge(body, current) {
   if (user && !password) return { error: 'Escribe la contraseña del usuario de correo.' };
   if (/[\r\n\0]/.test(`${user}${password}${fromName}`)) return { error: 'Los datos no pueden tener saltos de línea.' };
   if (appUrl && !/^https?:\/\/[^\s]+$/i.test(appUrl)) return { error: 'La dirección de la web debe empezar con http:// o https://.' };
-  return { value: { host, port, security, user, password: user ? password : '', fromName: fromName || 'Omada Logs', from }, appUrl };
+  return { value: { host, port, security, user, password: user ? password : '', fromName: fromName || 'Logs', from }, appUrl };
 }
 
 router.get('/settings/smtp', guard, (req, res) => res.json({ smtp: publicConfig() }));
@@ -78,9 +78,9 @@ router.post('/settings/smtp/test', guard, async (req, res) => {
   try {
     await mailer.send({
       to,
-      subject: 'Prueba de correo — Omada Logs',
-      text: 'Si lees esto, el correo de Omada Logs está bien configurado. Ya puede enviar alertas y accesos de usuarios.',
-      html: '<p>Si lees esto, el correo de <strong>Omada Logs</strong> está bien configurado.</p><p>Ya puede enviar alertas y accesos de usuarios.</p>',
+      subject: 'Prueba de correo — Logs',
+      text: 'Si lees esto, el correo de Logs está bien configurado. Ya puede enviar alertas y accesos de usuarios.',
+      html: '<p>Si lees esto, el correo de <strong>Logs</strong> está bien configurado.</p><p>Ya puede enviar alertas y accesos de usuarios.</p>',
     }, m.value);
   } catch (e) {
     return res.status(400).json({ error: e.message });

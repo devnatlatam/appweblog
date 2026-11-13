@@ -2,7 +2,7 @@
 
 > **¿Solo quieres instalarlo?** No necesitas esta guía: un único script hace todo lo de abajo. Mira [Instalación y actualización](docs/15-instalacion-y-actualizacion.md). Esta página es la **versión manual**: sirve para entender qué hace `deploy/install.sh` en cada paso, o para instalar sin el script. Si cambias un paso aquí, cambia también el script (y al revés).
 
-> Parte de la documentación de Omada Logs: ver el [índice en README.md](README.md). Para mantener el servidor después: [Operación y mantenimiento](docs/11-operacion.md). Qué está probado y qué no: [Estado y pendientes](docs/12-estado-y-pendientes.md).
+> Parte de la documentación de Logs: ver el [índice en README.md](README.md). Para mantener el servidor después: [Operación y mantenimiento](docs/11-operacion.md). Qué está probado y qué no: [Estado y pendientes](docs/12-estado-y-pendientes.md).
 
 Esta guía instala la web, la API y el colector de puertos en un VPS Debian, y explica cómo pasar de rsyslog a recibir los logs directamente por puerto sin cortar el servicio.
 

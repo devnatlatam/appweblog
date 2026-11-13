@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instalador de Syslog Web (Omada Logs) para Debian 12 / Ubuntu. Instala TODO con un solo comando:
+# Instalador de Syslog Web (Logs) para Debian 12 / Ubuntu. Instala TODO con un solo comando:
 #
 #   sudo bash install.sh --domain logs.tu-dominio.com --email tu@correo.com --name "Tu Nombre"
 #

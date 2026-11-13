@@ -1,6 +1,6 @@
 # Arquitectura
 
-Cómo está construido Omada Logs y, sobre todo, **por qué**. Para quien va a mantener o ampliar el código.
+Cómo está construido Logs y, sobre todo, **por qué**. Para quien va a mantener o ampliar el código.
 
 ## Vista general
 
