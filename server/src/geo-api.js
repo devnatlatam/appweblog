@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 const pool = require('./db');
 const { auth, need } = require('./middleware');
-const { audit } = require('./settings');
+const { audit, getSetting, setSetting } = require('./settings');
 const geo = require('./geo-countries');
 
 const router = express.Router();
@@ -115,9 +115,32 @@ router.get('/geo', guard('ports.view'), async (req, res) => {
   res.json({
     requests: rows.map(shapeAdmin),
     total: geo.TOTAL,
-    baseUrl: process.env.APP_URL || null, // si no está definida, la web usa la dirección desde la que se abrió
+    ...(await baseUrls()),
     catalog: geo.catalog,
   });
+});
+
+// Dominio con el que se arman los enlaces para los clientes. Orden: el que se escribió en esta pantalla, luego APP_URL del
+// servidor y, si no hay ninguno, la web usa la dirección desde la que se abrió el panel.
+const BASE_KEY = 'geo.baseUrl';
+async function baseUrls() {
+  return { baseUrl: await getSetting(BASE_KEY, null), fallbackUrl: process.env.APP_URL || null };
+}
+
+router.put('/geo/settings', guard('settings.manage'), async (req, res) => {
+  const raw = String((req.body || {}).baseUrl || '').trim();
+  let value = null;
+  if (raw) {
+    let u;
+    try { u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`); } catch (e) { u = null; }
+    if (!u || !/^https?:$/.test(u.protocol) || !u.hostname.includes('.') && u.hostname !== 'localhost') {
+      return res.status(400).json({ error: 'Escribe un dominio válido, por ejemplo geo.tuempresa.com.' });
+    }
+    value = u.origin; // solo protocolo, dominio y puerto: sin rutas ni barra final
+  }
+  await setSetting(BASE_KEY, value);
+  await audit(req.user.id, 'geo.settings', { baseUrl: value });
+  res.json(await baseUrls());
 });
 
 const clientId = (req) => Number(req.params.clientId) || 0;

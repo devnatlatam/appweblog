@@ -1,4 +1,7 @@
 /* ───────── Geobloqueo: pantalla de administración y formulario público del cliente ───────── */
+.geo-domain { padding: 14px 16px; margin-bottom: 16px; }
+.geo-domain__row { display: flex; gap: 8px; max-width: 520px; }
+.geo-domain__row .input { flex: 1; }
 .geo-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .geo-filters__search { flex: 1 1 240px; max-width: 340px; }
 .geo-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }

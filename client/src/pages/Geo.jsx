@@ -84,6 +84,44 @@ function Detail({ r, catalog, total, onClose }) {
   );
 }
 
+// Dominio que verá el cliente en su enlace. Quien configura el sistema lo escribe a mano; el resto solo lo ve.
+function Domain({ data, editable, onSaved }) {
+  const toast = useToast();
+  const [value, setValue] = useState(data.baseUrl || '');
+  const [busy, setBusy] = useState(false);
+  const effective = data.baseUrl || data.fallbackUrl || window.location.origin;
+  const dirty = value.trim() !== (data.baseUrl || '');
+
+  const save = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const d = await api('/geo/settings', { method: 'PUT', body: { baseUrl: value } });
+      setValue(d.baseUrl || '');
+      onSaved(d);
+      toast(d.baseUrl ? 'Dominio guardado: los enlaces ya lo usan' : 'Dominio quitado: los enlaces usan el predeterminado');
+    } catch (err) { toast(err.message, 'error'); } finally { setBusy(false); }
+  };
+
+  return (
+    <form className="panel geo-domain" onSubmit={save}>
+      <div className="field">
+        <label htmlFor="geo-domain">Dominio de los enlaces</label>
+        <div className="geo-domain__row">
+          <input id="geo-domain" className="input mono" value={value} disabled={!editable} placeholder="geo.tuempresa.com"
+            onChange={(e) => setValue(e.target.value)} />
+          {editable && <button type="submit" className="btn btn--primary" disabled={!dirty || busy}>Guardar</button>}
+        </div>
+        <span className="hint">
+          Los clientes recibirán enlaces como <span className="mono">{effective}/geo/…</span>
+          {!data.baseUrl && ' (dominio predeterminado: déjalo vacío para usarlo)'}.
+          {editable && ' El dominio debe apuntar a este servidor; el cambio se aplica a todos los enlaces, incluidos los ya creados.'}
+        </span>
+      </div>
+    </form>
+  );
+}
+
 export default function Geo() {
   const { can } = useAuth();
   const toast = useToast();
@@ -106,7 +144,7 @@ export default function Geo() {
   }, [load]);
 
   const merge = (request) => setData((d) => ({ ...d, requests: d.requests.map((x) => (x.clientId === request.clientId ? request : x)) }));
-  const linkOf = (r) => `${data.baseUrl || window.location.origin}/geo/${r.token}`;
+  const linkOf = (r) => `${data.baseUrl || data.fallbackUrl || window.location.origin}/geo/${r.token}`;
 
   const copyLink = async (r) => {
     const url = linkOf(r);
@@ -158,6 +196,7 @@ export default function Geo() {
         <div className="empty">Cargando…</div>
       ) : (
         <>
+          <Domain data={data} editable={can('settings.manage')} onSaved={(d) => setData((x) => ({ ...x, ...d }))} />
           <div className="geo-filters">
             <div className="chips" role="tablist" aria-label="Estado">
               {FILTERS.map((f) => (
