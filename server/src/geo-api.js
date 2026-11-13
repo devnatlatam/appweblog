@@ -106,14 +106,22 @@ async function loadOne(clientId) {
   return rows[0] ? shapeAdmin(rows[0]) : null;
 }
 
+// Solo lista las solicitudes creadas a mano. `available` son los clientes que todavía no tienen una (para el botón "Nueva solicitud").
 router.get('/geo', guard('ports.view'), async (req, res) => {
-  const { rows } = await pool.query(
-    `SELECT c.id, c.client_name, c.port_number, c.protocol, g.token, g.status, g.countries, g.contact, g.submitted_at,
-            g.submitted_ip, g.submissions, g.reopened_at
-     FROM clients_ports c LEFT JOIN geo_requests g ON g.client_id = c.id
-     ORDER BY lower(c.client_name), c.port_number`);
+  const [{ rows }, avail] = await Promise.all([
+    pool.query(
+      `SELECT c.id, c.client_name, c.port_number, c.protocol, g.token, g.status, g.countries, g.contact, g.submitted_at,
+              g.submitted_ip, g.submissions, g.reopened_at
+       FROM geo_requests g JOIN clients_ports c ON c.id = g.client_id
+       ORDER BY g.created_at DESC`),
+    pool.query(
+      `SELECT c.id, c.client_name, c.port_number, c.protocol FROM clients_ports c
+       WHERE NOT EXISTS (SELECT 1 FROM geo_requests g WHERE g.client_id = c.id)
+       ORDER BY lower(c.client_name), c.port_number`),
+  ]);
   res.json({
     requests: rows.map(shapeAdmin),
+    available: avail.rows.map((r) => ({ clientId: r.id, clientName: r.client_name, port: r.port_number, protocol: r.protocol })),
     total: geo.TOTAL,
     ...(await baseUrls()),
     catalog: geo.catalog,
@@ -178,6 +186,17 @@ router.post('/geo/:clientId/regenerate', guard('ports.manage'), async (req, res)
   const request = await loadOne(id);
   await audit(req.user.id, 'geo.regenerate', { clientId: id, client: request.clientName });
   res.json({ request });
+});
+
+// Elimina la solicitud (y su respuesta). El enlace deja de funcionar; el cliente queda libre para crear otra solicitud.
+// La respuesta enviada sigue en el registro de auditoría (geo.submit).
+router.delete('/geo/:clientId', guard('ports.manage'), async (req, res) => {
+  const { rows } = await pool.query(
+    'DELETE FROM geo_requests g USING clients_ports c WHERE g.client_id = $1 AND c.id = g.client_id RETURNING c.client_name, g.submissions',
+    [clientId(req)]);
+  if (!rows[0]) return res.status(404).json({ error: 'Esa solicitud no existe.' });
+  await audit(req.user.id, 'geo.delete', { clientId: clientId(req), client: rows[0].client_name, submissions: rows[0].submissions });
+  res.json({ ok: true });
 });
 
 module.exports = router;
