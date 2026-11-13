@@ -75,7 +75,7 @@ function Shell() {
       <aside className={`sidebar${open ? ' is-open' : ''}`} aria-label="Navegación principal">
         <NavLink to="/" className="brand">
           <span className="brand__mark"><Activity size={20} aria-hidden="true" /></span>
-          <span className="brand__name">Omada Logs<span className="brand__sub">Monitoreo de red</span></span>
+          <span className="brand__name">Logs<span className="brand__sub">Monitoreo de red</span></span>
         </NavLink>
 
         <nav className="nav">

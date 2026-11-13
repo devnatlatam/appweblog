@@ -25,7 +25,7 @@ export default function Login() {
       <section className="login__story" aria-hidden="true">
         <div className="brand login__brand">
           <span className="brand__mark"><Activity size={20} /></span>
-          <span className="brand__name">Omada Logs</span>
+          <span className="brand__name">Logs</span>
         </div>
         <div className="login__demo">
           <p className="login__lead">Lo que manda el controlador, en palabras que se entienden.</p>
